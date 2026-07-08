@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard COSQ</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1a1a2e}
+.topbar{background:#1a3a5c;color:#fff;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.tt{font-size:15px;font-weight:600}.ts{font-size:11px;opacity:.6}
+.mg{display:flex;border:1px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden}
+.mb{border:none;background:transparent;color:rgba(255,255,255,.6);padding:6px 14px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;border-right:1px solid rgba(255,255,255,.2)}
+.mb:last-child{border-right:none}
+.mb.on{background:rgba(255,255,255,.2);color:#fff;font-weight:500}
+.main{max-width:920px;margin:0 auto;padding:20px 16px 60px}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.dn{display:flex;align-items:center;gap:6px}
+.dn button{border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;color:#1a1a2e;padding:5px 10px;cursor:pointer;font-size:15px}
+.dn span{font-size:13px;font-weight:500;color:#1a1a2e;min-width:145px;text-align:center}
+.pill{border:1.5px solid #e2e8f0;border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;background:#fff;color:#64748b;font-family:'Inter',sans-serif}
+.pill.on{background:#eef4ff;border-color:#1a3a5c;color:#1a3a5c;font-weight:500}
+.sel{border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 10px;font-size:13px;background:#fff;color:#1a1a2e;font-family:'Inter',sans-serif}
+.yr-checks{display:flex;gap:10px;align-items:center}
+.yr-chk{display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;color:#1a1a2e}
+.yr-chk input{width:15px;height:15px;cursor:pointer;accent-color:#1a3a5c}
+.kr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+@media(max-width:600px){.kr{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border-radius:12px;padding:13px 15px;border:1px solid #e8f0fb}
+.kl{font-size:11px;color:#64748b;margin-bottom:3px}
+.kv{font-size:21px;font-weight:600;line-height:1.1}
+.ks{font-size:11px;color:#94a3b8;margin-top:2px}
+.evol{font-size:11px;font-weight:500;margin-top:3px}
+.evol.up{color:#16a34a}.evol.dn{color:#dc2626}.evol.neu{color:#94a3b8}
+.band{background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #e8f0fb}
+.bi{display:flex;align-items:center;gap:5px;font-size:12px;color:#64748b}
+.bd{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.bv{font-size:13px;font-weight:600;color:#1a1a2e;margin-left:2px}
+.bp{font-size:11px;color:#94a3b8}
+.g2{display:grid;grid-template-columns:3fr 2fr;gap:12px;margin-bottom:12px}
+@media(max-width:600px){.g2{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:14px;padding:15px;border:1px solid #e8f0fb;margin-bottom:12px}
+.ct{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.leg{display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.leg span{display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b}
+.leg b{width:10px;height:10px;border-radius:2px;display:inline-block}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.tbl th{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;padding:6px 6px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:500}
+.tbl th:first-child{text-align:left}
+.tbl td{padding:7px 6px;text-align:right;border-bottom:1px solid #f8fafc;font-size:12px;color:#1a1a2e}
+.tbl td:first-child{text-align:left;font-weight:500}
+.tbl tfoot td{font-weight:600;border-bottom:none;border-top:2px solid #e2e8f0;color:#1a3a5c}
+.tbl tr:hover:not(tfoot tr) td{background:#f8fafc}
+.bsq{font-size:10px;padding:1px 5px;border-radius:10px;font-weight:500;background:#dbeafe;color:#1e40af;margin-left:4px}
+.blaon{font-size:10px;padding:1px 5px;border-radius:10px;font-weight:500;background:#dcfce7;color:#166534;margin-left:4px}
+.ok{color:#16a34a;font-weight:500}.warn{color:#d97706;font-weight:500}.bad{color:#dc2626;font-weight:500}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div><div class="tt">Dashboard COSQ</div><div class="ts">Winlogie · Août 2024 → Juin 2026</div></div>
+  <div class="mg">
+    <button class="mb on" onclick="setMode('jour',this)">Jour</button>
+    <button class="mb" onclick="setMode('mois',this)">Mois</button>
+    <button class="mb" onclick="setMode('annee',this)">Année</button>
+    <button class="mb" onclick="setMode('cumul',this)">Cumul</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="ctrls" id="ctrlBar">
+    <!-- Jour -->
+    <div class="dn" id="jourNav" style="display:flex">
+      <button onclick="prevDay()">‹</button>
+      <span id="dayLbl"></span>
+      <button onclick="nextDay()">›</button>
+    </div>
+    <!-- Mois -->
+    <select class="sel" id="selMois" style="display:none" onchange="render()"></select>
+    <!-- Année/Cumul -->
+    <div class="yr-checks" id="yrChecks" style="display:none">
+      <label class="yr-chk"><input type="checkbox" value="2024" onchange="render()"> 2024</label>
+      <label class="yr-chk"><input type="checkbox" value="2025" checked onchange="render()"> 2025</label>
+      <label class="yr-chk"><input type="checkbox" value="2026" checked onchange="render()"> 2026</label>
+    </div>
+    <!-- Site pills (Jour+Mois) -->
+    <div style="display:flex;gap:6px" id="sitePills">
+      <button class="pill on" onclick="setSite('all',this)">Tous</button>
+      <button class="pill" onclick="setSite('SQ',this)">Saint-Quentin</button>
+      <button class="pill" onclick="setSite('Laon',this)">Laon</button>
+    </div>
+  </div>
+
+  <div class="kr" id="kpiRow"></div>
+  <div class="band" id="band"></div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="ct" id="chartLbl">CA</div>
+      <div class="leg" id="legMain">
+        <span><b style="background:#2a78d6"></b>Saint-Quentin</span>
+        <span><b style="background:#1baf7a"></b>Laon</span>
+      </div>
+      <div style="position:relative;height:200px"><canvas id="cMain" role="img" aria-label="Graphique principal">Graphique CA</canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct" id="cSiteTitle">SQ vs Laon</div>
+      <div style="position:relative;height:200px"><canvas id="cSite" role="img" aria-label="SQ vs Laon">Répartition SQ vs Laon</canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct" id="tblTitle">Détail</div>
+    <table class="tbl"><thead id="th"></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table>
+  </div>
+</div>
+
+<script src="data_daily.js"></script>
+<script src="data_monthly.js"></script>
+<script src="chart.js"></script>
+<script>
+const MFR=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
+const JFR=['dim','lun','mar','mer','jeu','ven','sam'];
+const fca=v=>Math.round(v).toLocaleString('fr-FR')+' €';
+const fcak=v=>v>=1000000?(v/1000000).toFixed(2)+'M€':(v/1000).toFixed(0)+'k€';
+const fdt=s=>{const d=new Date(s);return JFR[d.getDay()]+' '+d.getDate()+' '+MFR[d.getMonth()]+' '+d.getFullYear();};
+const fdts=s=>{const d=new Date(s);return JFR[d.getDay()]+' '+d.getDate()+' '+MFR[d.getMonth()];};
+const fmois=s=>{const[y,m]=s.split('-');return MFR[parseInt(m)-1]+' '+y;};
+const txCls=v=>v>=10?'bad':v>=7?'warn':'ok';
+const txCol=v=>v>=10?'#dc2626':v>=7?'#d97706':'#16a34a';
+const evolHtml=(curr,prev)=>{
+  if(!prev||prev===0) return '';
+  const p=Math.round((curr-prev)/prev*1000)/10;
+  const cls=p>0?'up':p<0?'dn':'neu';
+  return `<div class="evol ${cls}">${p>0?'↑':p<0?'↓':'→'} ${Math.abs(p)}% vs période préc.</div>`;
+};
+
+let mode='jour', site='all', jIdx=0, cM=null, cS=null;
+
+// Init jours
+const JOURS=Object.keys(DAILY.daily).sort();
+jIdx=JOURS.length-1;
+
+// Init sélecteur mois
+const selMois=document.getElementById('selMois');
+Object.keys(MONTHLY.monthly).sort().reverse().forEach(m=>{
+  const o=document.createElement('option'); o.value=m; o.textContent=fmois(m); selMois.appendChild(o);
+});
+selMois.value=Object.keys(MONTHLY.monthly).sort().pop();
+
+function getSelYears(){
+  return [...document.querySelectorAll('#yrChecks input:checked')].map(i=>i.value);
+}
+
+function setMode(m,el){
+  mode=m;
+  document.querySelectorAll('.mb').forEach(b=>b.classList.remove('on')); el.classList.add('on');
+  document.getElementById('jourNav').style.display=m==='jour'?'flex':'none';
+  document.getElementById('selMois').style.display=m==='mois'?'block':'none';
+  document.getElementById('yrChecks').style.display=(m==='annee'||m==='cumul')?'flex':'none';
+  document.getElementById('sitePills').style.display=(m==='annee'||m==='cumul')?'none':'flex';
+  render();
+}
+function setSite(s,el){site=s;document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');render();}
+function prevDay(){if(jIdx>0){jIdx--;render();}}
+function nextDay(){if(jIdx<JOURS.length-1){jIdx++;render();}}
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+function getCA(d){return site==='all'?d.ca:site==='SQ'?d.ca_sq:d.ca_laon;}
+function getAcq(d){return site==='all'?d.actes:site==='SQ'?d.actes_sq:d.actes_laon;}
+
+function renderKpi(d,prev,label){
+  const ca=getCA(d), caPrev=prev?getCA(prev):0;
+  const ac=getAcq(d), acPrev=prev?getAcq(prev):0;
+  const pan=d.payants>0?d.ca/d.payants:0, panPrev=prev&&prev.payants>0?prev.ca/prev.payants:0;
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi"><div class="kl">CA ${label}</div><div class="kv">${fcak(ca)}</div><div class="ks">${fca(ca)}</div>${evolHtml(ca,caPrev)}</div>
+    <div class="kpi"><div class="kl">Patients honorés</div><div class="kv">${ac.toLocaleString('fr-FR')}</div><div class="ks">${label}</div>${evolHtml(ac,acPrev)}</div>
+    <div class="kpi"><div class="kl">Panier moyen</div><div class="kv">${pan.toFixed(2)} €</div><div class="ks">actes payants</div>${evolHtml(pan,panPrev)}</div>
+    <div class="kpi"><div class="kl">Taux absentéisme</div><div class="kv ${txCls(d.tx_abs)}">${d.tx_abs}%</div><div class="ks">${d.abs} absences</div></div>`;
+}
+
+function renderBand(d){
+  document.getElementById('band').innerHTML=`
+    <div class="bi"><div class="bd" style="background:#2a78d6"></div><span>Payants</span><span class="bv">${d.payants}</span></div>
+    <span style="color:#e2e8f0">·</span>
+    <div class="bi"><div class="bd" style="background:#d97706"></div><span>Postop</span><span class="bv">${d.postop}</span><span class="bp"> (${d.actes>0?Math.round(d.postop/d.actes*100):0}%)</span></div>
+    <span style="color:#e2e8f0">·</span>
+    <div class="bi"><div class="bd" style="background:#888"></div><span>AG</span><span class="bv">${d.ag}</span><span class="bp"> (${d.actes>0?Math.round(d.ag/d.actes*100):0}%)</span></div>
+    <span style="color:#e2e8f0">·</span>
+    <div class="bi"><div class="bd" style="background:#dc2626"></div><span>Absences</span><span class="bv">${d.abs}</span><span class="bp"> (${d.tx_abs}%)</span></div>`;
+}
+
+function renderDonut(ca_sq,ca_laon){
+  if(cS)cS.destroy();
+  const tot=ca_sq+ca_laon; const pSQ=tot>0?Math.round(ca_sq/tot*100):0;
+  cS=new Chart(document.getElementById('cSite'),{type:'doughnut',
+    data:{labels:[`SQ ${pSQ}%`,`Laon ${100-pSQ}%`],datasets:[{data:[Math.round(ca_sq),Math.round(ca_laon)],backgroundColor:['#2a78d6','#1baf7a'],borderWidth:3,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10,boxWidth:10,boxHeight:10}},
+               tooltip:{callbacks:{label:c=>c.label+' : '+fca(c.parsed)}}}}});
+}
+
+function renderMedTable(medList,cols){
+  document.getElementById('th').innerHTML='<tr>'+cols.map((c,i)=>`<th style="${i===0?'text-align:left;':''}width:${c.w}">${c.h}</th>`).join('')+'</tr>';
+  let totCA=0,totAc=0,totPost=0,totAG=0,totAbs=0,totPay=0;
+  document.getElementById('tb').innerHTML=medList.map(m=>{
+    totCA+=m.ca;totAc+=m.actes;totPost+=m.postop;totAG+=m.ag;totAbs+=m.abs;totPay+=m.payants;
+    const tx=m.actes>0?Math.round(m.abs/m.actes*1000)/10:0;
+    const pan=m.payants>0?(m.ca/m.payants).toFixed(2)+' €':'—';
+    return`<tr><td>${m.nom}<span class="${m.site==='SQ'?'bsq':'blaon'}">${m.site}</span></td>
+      <td>${fca(m.ca)}</td><td>${m.actes}</td>
+      <td style="color:#d97706">${m.postop}</td><td style="color:#888">${m.ag}</td>
+      <td style="color:#dc2626">${m.abs}</td>
+      <td style="font-weight:600;color:${txCol(tx)}">${tx}%</td>
+      <td style="color:#64748b">${pan}</td></tr>`;}).join('');
+  const txT=totAc>0?Math.round(totAbs/totAc*1000)/10:0;
+  const panT=totPay>0?(totCA/totPay).toFixed(2)+' €':'—';
+  document.getElementById('tf').innerHTML=`<tr><td>Total</td><td>${fca(totCA)}</td><td>${totAc}</td>
+    <td style="color:#d97706">${totPost}</td><td style="color:#888">${totAG}</td>
+    <td style="color:#dc2626">${totAbs}</td>
+    <td style="font-weight:600;color:${txCol(txT)}">${txT}%</td><td>${panT}</td></tr>`;
+}
+
+const MED_COLS=[{h:'Médecin',w:'28%'},{h:'CA',w:'17%'},{h:'Patients',w:'10%'},{h:'Postop',w:'9%'},{h:'AG',w:'7%'},{h:'Abs',w:'9%'},{h:'Tx abs',w:'10%'},{h:'Panier',w:'10%'}];
+
+// ── JOUR ────────────────────────────────────────────────────────────────
+function renderJour(){
+  const date=JOURS[jIdx];
+  const d=DAILY.daily[date];
+  const prevDate=jIdx>0?JOURS[jIdx-1]:null;
+  const prev=prevDate?DAILY.daily[prevDate]:null;
+  document.getElementById('chartLbl').textContent=`CA par médecin — ${fdts(date)}`;
+  document.getElementById('cSiteTitle').textContent='SQ vs Laon';
+  document.getElementById('tblTitle').textContent=`Détail par médecin — ${fdt(date)}`;
+  document.getElementById('dayLbl').textContent=fdt(date);
+  renderKpi(d,prev,fdts(date)); renderBand(d);
+  const meds=Object.values(DAILY.med_day[date]||{}).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
+  if(cM)cM.destroy();
+  cM=new Chart(document.getElementById('cMain'),{type:'bar',
+    data:{labels:meds.map(m=>m.nom.replace('Dr ','').split(' ')[0]),
+          datasets:[{data:meds.map(m=>Math.round(m.ca)),backgroundColor:meds.map(m=>m.site==='SQ'?'#2a78d6':'#1baf7a'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fca(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10},maxRotation:35}},
+              y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>fcak(v)}}}}});
+  renderDonut(d.ca_sq,d.ca_laon);
+  renderMedTable(meds,MED_COLS);
+  document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>Saint-Quentin</span><span><b style="background:#1baf7a"></b>Laon</span>';
+}
+
+// ── MOIS ────────────────────────────────────────────────────────────────
+function renderMois(){
+  const mois=selMois.value;
+  const allMois=Object.keys(MONTHLY.monthly).sort();
+  const idx=allMois.indexOf(mois);
+  const d=MONTHLY.monthly[mois];
+  const prev=idx>0?MONTHLY.monthly[allMois[idx-1]]:null;
+  const prevYearKey=mois.replace(/^\d{4}/,y=>String(parseInt(y)-1));
+  const prevYear=MONTHLY.monthly[prevYearKey];
+  document.getElementById('chartLbl').textContent=`CA 6 derniers mois`;
+  document.getElementById('cSiteTitle').textContent='SQ vs Laon';
+  document.getElementById('tblTitle').textContent=`Détail par médecin — ${fmois(mois)}`;
+  renderKpi(d,prev,fmois(mois)); renderBand(d);
+  // Graphique 6 derniers mois
+  const last6=allMois.slice(Math.max(0,idx-5),idx+1);
+  if(cM)cM.destroy();
+  cM=new Chart(document.getElementById('cMain'),{type:'bar',
+    data:{labels:last6.map(fmois),datasets:[
+      {label:'SQ',data:last6.map(m=>Math.round(MONTHLY.monthly[m].ca_sq)),backgroundColor:last6.map(m=>m===mois?'#2a78d6':'rgba(42,120,214,0.3)'),borderRadius:4,borderSkipped:false},
+      {label:'Laon',data:last6.map(m=>Math.round(MONTHLY.monthly[m].ca_laon)),backgroundColor:last6.map(m=>m===mois?'#1baf7a':'rgba(27,175,122,0.3)'),borderRadius:4,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fca(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}},
+              y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>fcak(v)}}}}});
+  renderDonut(d.ca_sq,d.ca_laon);
+  document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>SQ (mois sélectionné)</span><span><b style="background:#1baf7a"></b>Laon (mois sélectionné)</span>';
+  const meds=Object.values(MONTHLY.med_monthly[mois]||{}).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
+  renderMedTable(meds,MED_COLS);
+}
+
+// ── ANNÉE ───────────────────────────────────────────────────────────────
+function renderAnnee(){
+  const years=getSelYears().sort();
+  if(!years.length){document.getElementById('kpiRow').innerHTML='<div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:20px">Sélectionner au moins une année</div>';return;}
+  // Agréger les années sélectionnées
+  const agg=(field)=>years.reduce((s,y)=>s+(MONTHLY.yearly[y]?.[field]||0),0);
+  const d={ca:agg('ca'),actes:agg('actes'),payants:agg('payants'),postop:agg('postop'),ag:agg('ag'),abs:agg('abs'),ca_sq:agg('ca_sq'),ca_laon:agg('ca_laon'),actes_sq:agg('actes_sq'),actes_laon:agg('actes_laon'),tx_abs:0};
+  d.tx_abs=d.actes>0?Math.round(d.abs/d.actes*1000)/10:0;
+  const allYears=Object.keys(MONTHLY.yearly).sort();
+  const prevYear=years.length===1?allYears[allYears.indexOf(years[0])-1]:null;
+  const prev=prevYear&&MONTHLY.yearly[prevYear]?MONTHLY.yearly[prevYear]:null;
+  const label=years.length===1?years[0]:years[0]+'→'+years[years.length-1];
+  document.getElementById('chartLbl').textContent=`CA par année`;
+  document.getElementById('cSiteTitle').textContent='SQ vs Laon';
+  document.getElementById('tblTitle').textContent=`Détail par médecin — ${label}`;
+  renderKpi(d,prev,label); renderBand(d);
+  if(cM)cM.destroy();
+  const allY=Object.keys(MONTHLY.yearly).sort();
+  cM=new Chart(document.getElementById('cMain'),{type:'bar',
+    data:{labels:allY,datasets:[
+      {label:'SQ',data:allY.map(y=>Math.round(MONTHLY.yearly[y].ca_sq)),backgroundColor:allY.map(y=>years.includes(y)?'#2a78d6':'rgba(42,120,214,0.2)'),borderRadius:4,borderSkipped:false},
+      {label:'Laon',data:allY.map(y=>Math.round(MONTHLY.yearly[y].ca_laon)),backgroundColor:allY.map(y=>years.includes(y)?'#1baf7a':'rgba(27,175,122,0.2)'),borderRadius:4,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10,boxHeight:10}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fca(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}}},
+              y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:11},callback:v=>fcak(v)}}}}});
+  renderDonut(d.ca_sq,d.ca_laon);
+  document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>Saint-Quentin</span><span><b style="background:#1baf7a"></b>Laon</span>';
+  // Tableau par médecin sur les années sélectionnées
+  const medMap={};
+  years.forEach(y=>{
+    Object.entries(MONTHLY.med_yearly[y]||{}).forEach(([id,m])=>{
+      if(!medMap[id]) medMap[id]={...m,ca:0,actes:0,payants:0,postop:0,ag:0,abs:0};
+      medMap[id].ca+=m.ca; medMap[id].actes+=m.actes; medMap[id].payants+=m.payants;
+      medMap[id].postop+=m.postop; medMap[id].ag+=m.ag; medMap[id].abs+=m.abs;
+    });
+  });
+  const meds=Object.values(medMap).sort((a,b)=>b.ca-a.ca);
+  renderMedTable(meds,MED_COLS);
+}
+
+// ── CUMUL ───────────────────────────────────────────────────────────────
+function renderCumul(){
+  const years=getSelYears().sort();
+  if(!years.length) return;
+  const allMois=Object.keys(MONTHLY.monthly).sort().filter(m=>years.includes(m.split('-')[0]));
+  let cumTot=0,cumSQ=0,cumLaon=0,cumAc=0;
+  const rows=allMois.map(m=>{
+    const d=MONTHLY.monthly[m];
+    cumTot+=d.ca; cumSQ+=d.ca_sq; cumLaon+=d.ca_laon; cumAc+=d.actes;
+    return{m,cumTot,cumSQ,cumLaon,cumAc,ca:d.ca};
+  });
+  const last=rows[rows.length-1]||{cumTot:0,cumSQ:0,cumLaon:0,cumAc:0};
+  const label=years.length===1?years[0]:years[0]+'→'+years[years.length-1];
+  document.getElementById('chartLbl').textContent=`CA cumulé — ${label}`;
+  document.getElementById('cSiteTitle').textContent='SQ vs Laon cumulé';
+  document.getElementById('tblTitle').textContent=`Progression mensuelle — ${label}`;
+  document.getElementById('kpiRow').innerHTML=`
+    <div class="kpi"><div class="kl">CA cumulé</div><div class="kv">${fcak(last.cumTot)}</div><div class="ks">${fca(last.cumTot)}</div></div>
+    <div class="kpi"><div class="kl">Cum. Saint-Quentin</div><div class="kv" style="color:#2a78d6">${fcak(last.cumSQ)}</div><div class="ks">${Math.round(last.cumSQ/last.cumTot*100)}% du total</div></div>
+    <div class="kpi"><div class="kl">Cum. Laon</div><div class="kv" style="color:#1baf7a">${fcak(last.cumLaon)}</div><div class="ks">${Math.round(last.cumLaon/last.cumTot*100)}% du total</div></div>
+    <div class="kpi"><div class="kl">Patients cumulés</div><div class="kv">${last.cumAc.toLocaleString('fr-FR')}</div><div class="ks">${label}</div></div>`;
+  document.getElementById('band').innerHTML=`<span style="font-size:13px;color:#64748b">Progression cumulative du CA — ${allMois.length} mois sélectionnés</span>`;
+  if(cM)cM.destroy();
+  cM=new Chart(document.getElementById('cMain'),{type:'line',
+    data:{labels:rows.map(r=>fmois(r.m)),datasets:[
+      {label:'Tous',data:rows.map(r=>Math.round(r.cumTot)),borderColor:'#1a1a2e',borderWidth:2.5,pointRadius:2,tension:0.3,fill:false},
+      {label:'SQ',data:rows.map(r=>Math.round(r.cumSQ)),borderColor:'#2a78d6',borderWidth:2,pointRadius:2,tension:0.3,fill:false},
+      {label:'Laon',data:rows.map(r=>Math.round(r.cumLaon)),borderColor:'#1baf7a',borderWidth:2,pointRadius:2,tension:0.3,fill:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fca(c.parsed.y)}}},
+      scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10},maxRotation:45,maxTicksLimit:12}},
+              y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>fcak(v)}}}}});
+  document.getElementById('legMain').innerHTML='<span><b style="background:#1a1a2e;height:3px;border-radius:2px;width:20px"></b>Tous</span><span><b style="background:#2a78d6"></b>SQ</span><span><b style="background:#1baf7a"></b>Laon</span>';
+  renderDonut(last.cumSQ,last.cumLaon);
+  document.getElementById('th').innerHTML=`<tr><th style="text-align:left;width:14%">Mois</th><th>CA mois</th><th>Évol.</th><th>Cum. Total</th><th style="color:#2a78d6">Cum. SQ</th><th style="color:#1baf7a">Cum. Laon</th></tr>`;
+  document.getElementById('tb').innerHTML=rows.map((r,i)=>{
+    const prev=i>0?rows[i-1]:null;
+    const evol=prev&&prev.ca>0?Math.round((r.ca-prev.ca)/prev.ca*1000)/10:null;
+    const evolS=evol!==null?`<span style="font-size:11px;font-weight:500;color:${evol>0?'#16a34a':'#dc2626'}">${evol>0?'↑':'↓'}${Math.abs(evol)}%</span>`:'—';
+    return`<tr><td style="color:#64748b">${fmois(r.m)}</td><td>${fca(r.ca)}</td><td>${evolS}</td>
+      <td style="font-weight:500">${fca(r.cumTot)}</td><td style="color:#2a78d6">${fca(r.cumSQ)}</td><td style="color:#1baf7a">${fca(r.cumLaon)}</td></tr>`;}).join('');
+  document.getElementById('tf').innerHTML=`<tr><td>Moy./mois</td><td>${fca(last.cumTot/rows.length)}</td><td>—</td>
+    <td>${fca(last.cumTot)}</td><td style="color:#2a78d6">${fca(last.cumSQ)}</td><td style="color:#1baf7a">${fca(last.cumLaon)}</td></tr>`;
+}
+
+function render(){
+  if(mode==='jour') renderJour();
+  else if(mode==='mois') renderMois();
+  else if(mode==='annee') renderAnnee();
+  else renderCumul();
+}
+render();
+</script>
+</body>
+</html>

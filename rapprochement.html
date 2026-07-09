@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard COSQ — Prototype Paiement v4</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1a1a2e}
+.topbar{background:#1a3a5c;color:#fff;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.tt{font-size:15px;font-weight:600}.ts{font-size:11px;opacity:.6}
+.badge-proto{background:#f59e0b;color:#1a1a2e;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px;letter-spacing:.4px}
+.mg{display:flex;border:1px solid rgba(255,255,255,.2);border-radius:8px;overflow:hidden}
+.mb{border:none;background:transparent;color:rgba(255,255,255,.6);padding:6px 14px;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;border-right:1px solid rgba(255,255,255,.2)}
+.mb:last-child{border-right:none}
+.mb.on{background:rgba(255,255,255,.2);color:#fff;font-weight:500}
+.main{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+.ctrls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.dn{display:flex;align-items:center;gap:6px}
+.dn button{border:1.5px solid #e2e8f0;border-radius:8px;background:#fff;color:#1a1a2e;padding:5px 10px;cursor:pointer;font-size:15px}
+.dn span{font-size:13px;font-weight:500;color:#1a1a2e;min-width:200px;text-align:center}
+.pill{border:1.5px solid #e2e8f0;border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;background:#fff;color:#64748b;font-family:'Inter',sans-serif}
+.pill.on{background:#eef4ff;border-color:#1a3a5c;color:#1a3a5c;font-weight:500}
+
+/* --- Vue MOIS : sites côte à côte --- */
+.siteGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:640px){.siteGrid{grid-template-columns:1fr}}
+.siteCard{background:#fff;border-radius:14px;padding:16px;border:1px solid #e8f0fb}
+.siteName{font-size:12px;font-weight:600;color:#1a3a5c;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.siteName .n{font-size:10px;font-weight:500;color:#94a3b8;text-transform:none;letter-spacing:0}
+.miniRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.miniK{background:#f8fafc;border-radius:9px;padding:9px 8px;text-align:center}
+.miniK .l{font-size:9.5px;color:#64748b;margin-bottom:2px}
+.miniK .v{font-size:15px;font-weight:700;line-height:1.15}
+
+.totalBar{background:#1a3a5c;border-radius:14px;padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px}
+.totalBar .t{text-align:center;color:#fff}
+.totalBar .t .l{font-size:11px;opacity:.7;margin-bottom:3px}
+.totalBar .t .v{font-size:22px;font-weight:700}
+
+.card{background:#fff;border-radius:14px;padding:15px;border:1px solid #e8f0fb;margin-bottom:12px}
+.ct{font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+canvas{max-height:260px}
+
+.tbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+.tbl th{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;padding:6px 6px;text-align:right;border-bottom:1px solid #f1f5f9;font-weight:500}
+.tbl th:first-child{text-align:left}
+.tbl td{padding:7px 6px;text-align:right;border-bottom:1px solid #f8fafc;font-size:12px;color:#1a1a2e}
+.tbl td:first-child{text-align:left;font-weight:500}
+.tbl tfoot td{font-weight:600;border-bottom:none;border-top:2px solid #e2e8f0;color:#1a3a5c}
+.tbl tr:hover:not(tfoot tr) td{background:#f8fafc}
+.stt{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;display:inline-block}
+.stt.solde{background:#dcfce7;color:#166534}
+.stt.attente{background:#fef3c7;color:#92400e}
+.stt.anomalie{background:#fee2e2;color:#991b1b}
+.ecart-bad{color:#dc2626;font-weight:600}
+.ecart-ok{color:#94a3b8}
+
+.band{background:#fff;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #e8f0fb;font-size:13px;color:#1a1a2e;font-weight:500}
+.band.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.band.ok{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+
+.toggle-detail{background:none;border:none;color:#1a3a5c;font-size:12px;font-weight:500;cursor:pointer;padding:6px 0;text-decoration:underline;display:block;margin-bottom:8px}
+.note{font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.5}
+.empty{text-align:center;color:#94a3b8;padding:30px;font-size:13px}
+#drillWrap{display:none}
+
+/* Headline pour Jour/Semaine (drill-down) */
+.headline{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:600px){.headline{grid-template-columns:1fr}}
+.hcard{background:#fff;border-radius:14px;padding:18px;border:1px solid #e8f0fb;text-align:center}
+.hcard.reste{border-color:#fde68a;background:#fffbeb}
+.hcard.reste.ok{border-color:#bbf7d0;background:#f0fdf4}
+.hl{font-size:12px;color:#64748b;margin-bottom:6px;font-weight:500}
+.hv{font-size:26px;font-weight:700;line-height:1.1}
+.hs{font-size:11px;color:#94a3b8;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div><div class="tt">Dashboard COSQ</div><div class="ts">Rapprochement · Stellaire + Sicorfé + Banque · Juin 2026</div></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="mg">
+      <button class="mb on" onclick="setMode('mois',this)">Mois</button>
+      <button class="mb" onclick="setMode('semaine',this)">Semaine</button>
+      <button class="mb" onclick="setMode('jour',this)">Jour</button>
+    </div>
+    <a href="index.html" style="text-decoration:none;background:rgba(255,255,255,.12);color:#fff;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;border:1px solid rgba(255,255,255,.25);white-space:nowrap">← Dashboard CA</a>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ===== VUE MOIS (par défaut) ===== -->
+  <div id="moisView">
+    <div class="siteGrid" id="siteGrid"></div>
+    <div class="totalBar" id="totalBar"></div>
+    <div class="band" id="moisBand"></div>
+
+    <div class="card">
+      <div class="ct">Reste dehors par semaine</div>
+      <canvas id="cumulChart"></canvas>
+      <div class="note">Montant facturé pas encore rentré (Sicorfé + patient), semaine par semaine. Utile pour repérer si un montant reste bloqué plusieurs semaines de suite.</div>
+    </div>
+
+    <div class="card" id="patientCard">
+      <div class="ct">Encaissements patient (banque) — Juin 2026</div>
+      <table class="tbl">
+        <thead><tr><th style="text-align:left">Moyen de paiement</th><th>St-Quentin</th><th>Laon</th><th>Total</th></tr></thead>
+        <tbody id="patientTb"></tbody>
+        <tfoot id="patientTf"></tfoot>
+      </table>
+      <div class="note" id="patientNote" style="margin-top:10px"></div>
+    </div>
+
+    <button class="toggle-detail" onclick="showDrill('mois')">Voir le détail jour par jour ▾</button>
+  </div>
+
+  <!-- ===== VUE JOUR / SEMAINE (drill-down) ===== -->
+  <div id="drillWrap">
+    <div class="ctrls">
+      <div class="dn" id="nav">
+        <button onclick="prevPeriod()">‹</button>
+        <span id="periodLbl"></span>
+        <button onclick="nextPeriod()">›</button>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="pill on" onclick="setSite('all',this)">Tous</button>
+        <button class="pill" onclick="setSite('SQ',this)">Saint-Quentin</button>
+        <button class="pill" onclick="setSite('Laon',this)">Laon</button>
+      </div>
+    </div>
+
+    <div class="headline" id="headline"></div>
+    <div class="band" id="band"></div>
+
+    <div class="card">
+      <div class="ct">Détail par médecin — <span id="dayTitle"></span></div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th style="text-align:left">Médecin</th><th>Actes</th><th>Facturé</th>
+            <th>Tiers payant dû</th><th>Avancé (Sicorfé)</th><th>Écart</th><th>Statut</th>
+          </tr>
+        </thead>
+        <tbody id="tb"></tbody>
+        <tfoot id="tf"></tfoot>
+      </table>
+      <div id="emptyMsg" class="empty" style="display:none">Aucune activité sur cette période pour ce site.</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Note prototype :</b> "Reçu" = avancé par Sicorfé + payé patient (Stellaire). Statuts calculés à partir de
+    <code>Statut RO</code>/<code>Statut RC</code> Sicorfé. Les encaissements patient (banque) sont en cumul mensuel
+    uniquement — les dépôts espèces/chèques n'étant pas quotidiens, un rapprochement jour par jour n'aurait pas de sens.
+  </div>
+</div>
+
+<script>
+const DATA = {"2026-06-01": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 471.16, "paye_patient": 471.16, "theorique": 6040.91, "avance": 6040.91, "a_rejet": false, "nb_actes": 82}}, "SQ": {"Kontopanos": {"demande_patient": 328.66, "paye_patient": 328.66, "theorique": 6600.32, "avance": 6600.32, "a_rejet": false, "nb_actes": 90}, "Koukos": {"demande_patient": 415.3, "paye_patient": 415.3, "theorique": 5956.45, "avance": 5956.45, "a_rejet": false, "nb_actes": 74}, "Turki": {"demande_patient": 1423.74, "paye_patient": 1423.74, "theorique": 6700.68, "avance": 6700.68, "a_rejet": false, "nb_actes": 85}}}, "2026-06-02": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 179.38, "paye_patient": 179.38, "theorique": 6019.96, "avance": 6019.96, "a_rejet": false, "nb_actes": 75}}, "SQ": {"Boucenna": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 156.55, "avance": 156.55, "a_rejet": false, "nb_actes": 3}, "Kontopanos": {"demande_patient": 240.83, "paye_patient": 240.83, "theorique": 6484.8, "avance": 6484.8, "a_rejet": false, "nb_actes": 79}, "Koukos": {"demande_patient": 283.45, "paye_patient": 283.45, "theorique": 6312.79, "avance": 6312.79, "a_rejet": false, "nb_actes": 82}, "Turki": {"demande_patient": 1401.42, "paye_patient": 1401.42, "theorique": 6131.85, "avance": 6131.85, "a_rejet": false, "nb_actes": 78}}}, "2026-06-03": {"Laon": {"Boucenna": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 94.16, "avance": 94.16, "a_rejet": false, "nb_actes": 1}, "Georgopoulos/remplacant": {"demande_patient": 231.4, "paye_patient": 214.36, "theorique": 5444.92, "avance": 5444.92, "a_rejet": false, "nb_actes": 78}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 94.16, "avance": 94.16, "a_rejet": true, "nb_actes": 0}}, "SQ": {"Georgopoulos": {"demande_patient": 1619.34, "paye_patient": 1619.34, "theorique": 6928.05, "avance": 6928.05, "a_rejet": false, "nb_actes": 79}, "Kontopanos": {"demande_patient": 204.22, "paye_patient": 204.22, "theorique": 5711.06, "avance": 5711.06, "a_rejet": false, "nb_actes": 80}, "Koukos": {"demande_patient": 374.49, "paye_patient": 374.49, "theorique": 6852.76, "avance": 6852.76, "a_rejet": true, "nb_actes": 85}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 78.09, "avance": 78.09, "a_rejet": true, "nb_actes": 0}}}, "2026-06-04": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 1649.71, "paye_patient": 1649.71, "theorique": 6956.72, "avance": 6956.72, "a_rejet": false, "nb_actes": 81}}, "SQ": {"Georgopoulos": {"demande_patient": 180.81, "paye_patient": 180.81, "theorique": 6419.35, "avance": 6419.35, "a_rejet": false, "nb_actes": 72}, "Kontopanos": {"demande_patient": 362.53, "paye_patient": 362.53, "theorique": 7028.44, "avance": 7028.44, "a_rejet": false, "nb_actes": 86}, "Koukos": {"demande_patient": 300.58, "paye_patient": 300.58, "theorique": 5398.12, "avance": 5398.12, "a_rejet": false, "nb_actes": 79}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 39.84, "avance": 39.84, "a_rejet": true, "nb_actes": 0}}}, "2026-06-05": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 252.49, "paye_patient": 252.49, "theorique": 5798.66, "avance": 5798.66, "a_rejet": false, "nb_actes": 76}}, "SQ": {"Kontopanos": {"demande_patient": 244.41, "paye_patient": 244.41, "theorique": 6810.73, "avance": 6810.73, "a_rejet": false, "nb_actes": 88}, "Koukos": {"demande_patient": 174.0, "paye_patient": 174.0, "theorique": 5831.99, "avance": 5831.99, "a_rejet": false, "nb_actes": 76}, "Turki": {"demande_patient": 1477.1, "paye_patient": 1442.1, "theorique": 5860.48, "avance": 5860.48, "a_rejet": false, "nb_actes": 76}}}, "2026-06-06": {"SQ": {"Boucenna": {"demande_patient": 404.66, "paye_patient": 404.66, "theorique": 1475.96, "avance": 1475.96, "a_rejet": false, "nb_actes": 19}, "Georgopoulos": {"demande_patient": 1485.05, "paye_patient": 1485.05, "theorique": 6363.45, "avance": 6363.45, "a_rejet": false, "nb_actes": 71}}}, "2026-06-08": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 245.94, "paye_patient": 230.34, "theorique": 6826.97, "avance": 6826.97, "a_rejet": false, "nb_actes": 84}}, "SQ": {"Kontopanos": {"demande_patient": 219.2, "paye_patient": 219.2, "theorique": 6147.64, "avance": 6147.64, "a_rejet": false, "nb_actes": 80}, "Koukos": {"demande_patient": 248.54, "paye_patient": 248.54, "theorique": 5537.29, "avance": 5537.29, "a_rejet": false, "nb_actes": 74}, "Turki": {"demande_patient": 1837.93, "paye_patient": 1837.93, "theorique": 6316.32, "avance": 6316.32, "a_rejet": false, "nb_actes": 77}}}, "2026-06-09": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 2014.64, "paye_patient": 2014.64, "theorique": 7090.14, "avance": 7090.14, "a_rejet": false, "nb_actes": 82}}, "SQ": {"Kontopanos": {"demande_patient": 463.54, "paye_patient": 463.54, "theorique": 6737.34, "avance": 6737.34, "a_rejet": false, "nb_actes": 88}, "Koukos": {"demande_patient": 132.52, "paye_patient": 132.52, "theorique": 5459.89, "avance": 5459.89, "a_rejet": false, "nb_actes": 71}, "Turki": {"demande_patient": 1274.48, "paye_patient": 1274.48, "theorique": 6512.82, "avance": 6512.82, "a_rejet": false, "nb_actes": 83}}}, "2026-06-10": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 225.32, "paye_patient": 225.32, "theorique": 6137.67, "avance": 6137.67, "a_rejet": false, "nb_actes": 90}}, "SQ": {"Koukos": {"demande_patient": 313.9, "paye_patient": 313.9, "theorique": 5987.91, "avance": 5987.91, "a_rejet": false, "nb_actes": 85}, "Turki": {"demande_patient": 1688.65, "paye_patient": 1688.65, "theorique": 5686.76, "avance": 5686.76, "a_rejet": false, "nb_actes": 83}}}, "2026-06-11": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 211.32, "paye_patient": 211.32, "theorique": 5451.09, "avance": 5451.09, "a_rejet": false, "nb_actes": 67}}, "SQ": {"Georgopoulos": {"demande_patient": 1374.07, "paye_patient": 1374.07, "theorique": 7423.64, "avance": 7423.64, "a_rejet": false, "nb_actes": 75}, "Kontopanos": {"demande_patient": 637.86, "paye_patient": 637.86, "theorique": 6957.02, "avance": 6957.02, "a_rejet": false, "nb_actes": 94}, "Koukos": {"demande_patient": 252.73, "paye_patient": 252.73, "theorique": 5869.1, "avance": 5869.1, "a_rejet": false, "nb_actes": 80}}}, "2026-06-12": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 209.15, "paye_patient": 209.15, "theorique": 6890.97, "avance": 6890.97, "a_rejet": false, "nb_actes": 85}}, "SQ": {"Kontopanos": {"demande_patient": 228.42, "paye_patient": 228.42, "theorique": 6167.11, "avance": 6167.11, "a_rejet": false, "nb_actes": 83}, "Turki": {"demande_patient": 1638.92, "paye_patient": 1638.92, "theorique": 6638.75, "avance": 6638.75, "a_rejet": false, "nb_actes": 83}}}, "2026-06-13": {"SQ": {"Boucenna": {"demande_patient": 818.49, "paye_patient": 818.49, "theorique": 3687.78, "avance": 3687.78, "a_rejet": false, "nb_actes": 46}, "Georgopoulos": {"demande_patient": 534.07, "paye_patient": 534.07, "theorique": 2885.65, "avance": 2885.65, "a_rejet": false, "nb_actes": 33}}}, "2026-06-15": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 462.49, "paye_patient": 462.49, "theorique": 8594.46, "avance": 8594.46, "a_rejet": false, "nb_actes": 105}}, "SQ": {"Kontopanos": {"demande_patient": 315.92, "paye_patient": 315.92, "theorique": 6722.08, "avance": 6722.08, "a_rejet": false, "nb_actes": 81}, "Turki": {"demande_patient": 1897.71, "paye_patient": 1897.71, "theorique": 7257.98, "avance": 7257.98, "a_rejet": false, "nb_actes": 85}}}, "2026-06-16": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 2225.77, "paye_patient": 2190.77, "theorique": 7182.82, "avance": 7182.82, "a_rejet": false, "nb_actes": 78}}, "SQ": {"Koukos": {"demande_patient": 323.49, "paye_patient": 323.49, "theorique": 6341.52, "avance": 6341.52, "a_rejet": false, "nb_actes": 80}, "Turki": {"demande_patient": 1696.7, "paye_patient": 1696.7, "theorique": 5664.16, "avance": 5664.16, "a_rejet": false, "nb_actes": 68}}}, "2026-06-17": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 152.22, "paye_patient": 152.22, "theorique": 4966.37, "avance": 4966.37, "a_rejet": false, "nb_actes": 71}}, "SQ": {"Georgopoulos": {"demande_patient": 2002.42, "paye_patient": 2002.42, "theorique": 6724.05, "avance": 6724.05, "a_rejet": false, "nb_actes": 81}, "Kontopanos": {"demande_patient": 482.59, "paye_patient": 482.59, "theorique": 4012.35, "avance": 4012.35, "a_rejet": false, "nb_actes": 52}, "Koukos": {"demande_patient": 618.14, "paye_patient": 618.14, "theorique": 6353.43, "avance": 6353.43, "a_rejet": true, "nb_actes": 93}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 117.04, "avance": 58.52, "a_rejet": true, "nb_actes": 0}}}, "2026-06-18": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 244.29, "paye_patient": 244.29, "theorique": 6362.83, "avance": 6362.83, "a_rejet": false, "nb_actes": 82}}, "SQ": {"Boucenna": {"demande_patient": 35.0, "paye_patient": 35.0, "theorique": 83.6, "avance": 83.6, "a_rejet": false, "nb_actes": 1}, "Georgopoulos": {"demande_patient": 2123.94, "paye_patient": 2123.94, "theorique": 8555.85, "avance": 8555.85, "a_rejet": true, "nb_actes": 86}, "Koukos": {"demande_patient": 413.42, "paye_patient": 413.42, "theorique": 6849.71, "avance": 6849.71, "a_rejet": false, "nb_actes": 91}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 71.0, "avance": 71.0, "a_rejet": true, "nb_actes": 0}, "Turki": {"demande_patient": 1381.22, "paye_patient": 1381.22, "theorique": 5809.49, "avance": 5809.49, "a_rejet": false, "nb_actes": 77}}}, "2026-06-19": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 298.38, "paye_patient": 298.38, "theorique": 6190.44, "avance": 6190.44, "a_rejet": false, "nb_actes": 81}}, "SQ": {"Koukos": {"demande_patient": 103.61, "paye_patient": 103.61, "theorique": 5600.59, "avance": 5600.59, "a_rejet": false, "nb_actes": 81}, "Turki": {"demande_patient": 1804.31, "paye_patient": 1804.31, "theorique": 6408.18, "avance": 6408.18, "a_rejet": false, "nb_actes": 84}}}, "2026-06-20": {"SQ": {"Boucenna": {"demande_patient": 113.32, "paye_patient": 113.32, "theorique": 602.99, "avance": 602.99, "a_rejet": false, "nb_actes": 7}, "Georgopoulos": {"demande_patient": 1965.88, "paye_patient": 1965.88, "theorique": 7677.49, "avance": 7677.49, "a_rejet": true, "nb_actes": 88}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 218.8, "avance": 218.8, "a_rejet": true, "nb_actes": 0}}}, "2026-06-22": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 170.15, "paye_patient": 170.15, "theorique": 6469.08, "avance": 6469.08, "a_rejet": true, "nb_actes": 80}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 69.37, "avance": 69.37, "a_rejet": false, "nb_actes": 0}}, "SQ": {"Kontopanos": {"demande_patient": 77.88, "paye_patient": 77.88, "theorique": 5286.27, "avance": 5286.27, "a_rejet": false, "nb_actes": 75}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 188.1, "avance": 188.1, "a_rejet": true, "nb_actes": 0}, "Turki": {"demande_patient": 1722.6, "paye_patient": 1722.6, "theorique": 6309.56, "avance": 6309.56, "a_rejet": true, "nb_actes": 83}}}, "2026-06-23": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 118.17, "paye_patient": 118.17, "theorique": 5947.97, "avance": 5947.97, "a_rejet": false, "nb_actes": 77}}, "SQ": {"Georgopoulos": {"demande_patient": 1713.89, "paye_patient": 1713.89, "theorique": 8197.2, "avance": 8197.2, "a_rejet": false, "nb_actes": 84}, "Kontopanos": {"demande_patient": 322.13, "paye_patient": 322.13, "theorique": 5833.9, "avance": 5833.9, "a_rejet": false, "nb_actes": 75}, "Turki": {"demande_patient": 1450.4, "paye_patient": 1450.4, "theorique": 5762.13, "avance": 5762.13, "a_rejet": false, "nb_actes": 72}}}, "2026-06-24": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 247.43, "paye_patient": 247.43, "theorique": 5351.14, "avance": 5351.14, "a_rejet": false, "nb_actes": 80}}, "SQ": {"Kontopanos": {"demande_patient": 294.93, "paye_patient": 294.93, "theorique": 5245.3, "avance": 5245.3, "a_rejet": false, "nb_actes": 76}, "Koukos": {"demande_patient": 370.68, "paye_patient": 370.68, "theorique": 6363.29, "avance": 6363.29, "a_rejet": false, "nb_actes": 77}, "Turki": {"demande_patient": 1773.99, "paye_patient": 1711.66, "theorique": 5854.96, "avance": 5854.96, "a_rejet": false, "nb_actes": 76}}}, "2026-06-25": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 1071.9, "paye_patient": 1038.87, "theorique": 7513.16, "avance": 7513.16, "a_rejet": true, "nb_actes": 81}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 131.41, "avance": 131.41, "a_rejet": false, "nb_actes": 0}}, "SQ": {"Boucenna": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 172.25, "avance": 172.25, "a_rejet": false, "nb_actes": 2}, "Georgopoulos": {"demande_patient": 124.62, "paye_patient": 124.62, "theorique": 5832.13, "avance": 5832.13, "a_rejet": false, "nb_actes": 65}, "Kontopanos": {"demande_patient": 206.63, "paye_patient": 206.63, "theorique": 6716.26, "avance": 6716.26, "a_rejet": false, "nb_actes": 86}}}, "2026-06-26": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 396.32, "paye_patient": 396.32, "theorique": 5366.59, "avance": 5366.59, "a_rejet": false, "nb_actes": 78}}, "SQ": {"Boucenna": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 548.58, "avance": 548.58, "a_rejet": false, "nb_actes": 6}, "Kontopanos": {"demande_patient": 188.02, "paye_patient": 188.02, "theorique": 5926.08, "avance": 5926.08, "a_rejet": false, "nb_actes": 81}, "Koukos": {"demande_patient": 334.14, "paye_patient": 306.81, "theorique": 5364.02, "avance": 5364.02, "a_rejet": false, "nb_actes": 66}, "Turki": {"demande_patient": 1609.98, "paye_patient": 1577.89, "theorique": 6223.7, "avance": 6223.7, "a_rejet": false, "nb_actes": 78}}}, "2026-06-27": {"SQ": {"Boucenna": {"demande_patient": 140.0, "paye_patient": 140.0, "theorique": 500.01, "avance": 500.01, "a_rejet": false, "nb_actes": 6}, "Georgopoulos": {"demande_patient": 1537.27, "paye_patient": 1502.27, "theorique": 6626.19, "avance": 6626.19, "a_rejet": false, "nb_actes": 79}}}, "2026-06-29": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 260.63, "paye_patient": 260.63, "theorique": 5678.15, "avance": 5678.15, "a_rejet": true, "nb_actes": 77}, "Non identifié": {"demande_patient": 0.0, "paye_patient": 0.0, "theorique": 63.4, "avance": 0.0, "a_rejet": false, "nb_actes": 0}}, "SQ": {"Kontopanos": {"demande_patient": 258.07, "paye_patient": 258.07, "theorique": 6271.63, "avance": 6271.63, "a_rejet": false, "nb_actes": 87}, "Koukos": {"demande_patient": 212.22, "paye_patient": 212.22, "theorique": 4120.65, "avance": 4120.65, "a_rejet": false, "nb_actes": 59}, "Turki": {"demande_patient": 1395.59, "paye_patient": 1395.59, "theorique": 6478.36, "avance": 6478.36, "a_rejet": true, "nb_actes": 81}}}, "2026-06-30": {"Laon": {"Georgopoulos/remplacant": {"demande_patient": 352.67, "paye_patient": 352.67, "theorique": 6874.32, "avance": 6874.32, "a_rejet": true, "nb_actes": 88}}, "SQ": {"Kontopanos": {"demande_patient": 300.05, "paye_patient": 300.05, "theorique": 6693.59, "avance": 6693.59, "a_rejet": false, "nb_actes": 90}, "Koukos": {"demande_patient": 305.52, "paye_patient": 305.52, "theorique": 5337.66, "avance": 5337.66, "a_rejet": false, "nb_actes": 72}}}};
+const CUMUL = {"Laon": [{"Jour": "2026-06-01", "facture_cum": 6512.07, "recu_cum": 6512.07}, {"Jour": "2026-06-02", "facture_cum": 12711.41, "recu_cum": 12711.41}, {"Jour": "2026-06-03", "facture_cum": 18481.89, "recu_cum": 18559.01}, {"Jour": "2026-06-04", "facture_cum": 27088.32, "recu_cum": 27165.44}, {"Jour": "2026-06-05", "facture_cum": 33139.47, "recu_cum": 33216.59}, {"Jour": "2026-06-08", "facture_cum": 40212.38, "recu_cum": 40273.9}, {"Jour": "2026-06-09", "facture_cum": 49317.16, "recu_cum": 49378.68}, {"Jour": "2026-06-10", "facture_cum": 55680.15, "recu_cum": 55741.67}, {"Jour": "2026-06-11", "facture_cum": 61342.56, "recu_cum": 61404.08}, {"Jour": "2026-06-12", "facture_cum": 68442.68, "recu_cum": 68504.2}, {"Jour": "2026-06-15", "facture_cum": 77499.63, "recu_cum": 77561.15}, {"Jour": "2026-06-16", "facture_cum": 86908.22, "recu_cum": 86934.74}, {"Jour": "2026-06-17", "facture_cum": 92026.81, "recu_cum": 92053.33}, {"Jour": "2026-06-18", "facture_cum": 98633.93, "recu_cum": 98660.45}, {"Jour": "2026-06-19", "facture_cum": 105122.75, "recu_cum": 105149.27}, {"Jour": "2026-06-22", "facture_cum": 111761.98, "recu_cum": 111857.87}, {"Jour": "2026-06-23", "facture_cum": 117828.12, "recu_cum": 117924.01}, {"Jour": "2026-06-24", "facture_cum": 123426.69, "recu_cum": 123522.58}, {"Jour": "2026-06-25", "facture_cum": 132011.75, "recu_cum": 132206.02}, {"Jour": "2026-06-26", "facture_cum": 137774.66, "recu_cum": 137968.93}, {"Jour": "2026-06-29", "facture_cum": 143713.44, "recu_cum": 143907.71}, {"Jour": "2026-06-30", "facture_cum": 150940.43, "recu_cum": 151134.7}], "SQ": [{"Jour": "2026-06-01", "facture_cum": 21425.15, "recu_cum": 21425.15}, {"Jour": "2026-06-02", "facture_cum": 42436.84, "recu_cum": 42436.84}, {"Jour": "2026-06-03", "facture_cum": 64126.76, "recu_cum": 64204.85}, {"Jour": "2026-06-04", "facture_cum": 83816.59, "recu_cum": 83934.52}, {"Jour": "2026-06-05", "facture_cum": 104215.3, "recu_cum": 104298.23}, {"Jour": "2026-06-06", "facture_cum": 113944.42, "recu_cum": 114027.35}, {"Jour": "2026-06-08", "facture_cum": 134251.34, "recu_cum": 134334.27}, {"Jour": "2026-06-09", "facture_cum": 154831.93, "recu_cum": 154914.86}, {"Jour": "2026-06-10", "facture_cum": 168509.15, "recu_cum": 168592.08}, {"Jour": "2026-06-11", "facture_cum": 191023.57, "recu_cum": 191106.5}, {"Jour": "2026-06-12", "facture_cum": 205696.77, "recu_cum": 205779.7}, {"Jour": "2026-06-13", "facture_cum": 213622.76, "recu_cum": 213705.69}, {"Jour": "2026-06-15", "facture_cum": 229816.45, "recu_cum": 229899.38}, {"Jour": "2026-06-16", "facture_cum": 243842.32, "recu_cum": 243925.25}, {"Jour": "2026-06-17", "facture_cum": 264035.3, "recu_cum": 264176.75}, {"Jour": "2026-06-18", "facture_cum": 289287.53, "recu_cum": 289499.98}, {"Jour": "2026-06-19", "facture_cum": 303204.22, "recu_cum": 303416.67}, {"Jour": "2026-06-20", "facture_cum": 313563.9, "recu_cum": 313995.15}, {"Jour": "2026-06-22", "facture_cum": 326960.21, "recu_cum": 327579.56}, {"Jour": "2026-06-23", "facture_cum": 350239.86, "recu_cum": 350859.21}, {"Jour": "2026-06-24", "facture_cum": 370143.01, "recu_cum": 370700.03}, {"Jour": "2026-06-25", "facture_cum": 383194.9, "recu_cum": 383751.92}, {"Jour": "2026-06-26", "facture_cum": 403389.42, "recu_cum": 403887.02}, {"Jour": "2026-06-27", "facture_cum": 412192.89, "recu_cum": 412655.49}, {"Jour": "2026-06-29", "facture_cum": 430929.41, "recu_cum": 431392.01}, {"Jour": "2026-06-30", "facture_cum": 443566.23, "recu_cum": 444028.83}]};
+const PATIENT_BANK = {
+  SQ:   { especes: 10220.43, carte: 46690.29, cheque: 8976.81 },
+  Laon: { especes: 0,        carte: 10340.99, cheque: 0 }
+};
+const PATIENT_STELLAIRE = { SQ: 52008.44, Laon: 11590.26 };
+
+const days = Object.keys(DATA).sort();
+const SITE_LABELS = {SQ:'Saint-Quentin', Laon:'Laon'};
+let mode='mois';
+let periodIdx = days.length-1;
+let site='all';
+let chartInstance=null;
+
+function fmoney(v){return v.toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0});}
+function fmoneyPrec(v){return v.toLocaleString('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:2});}
+function fdateLong(iso){ const [y,m,d]=iso.split('-'); return new Date(y,m-1,d).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+function fdateShort(iso){ const [y,m,d]=iso.split('-'); return new Date(y,m-1,d).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+
+function isoWeekKey(iso){
+  const [y,m,d]=iso.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  const day=(dt.getDay()+6)%7;
+  const monday=new Date(dt); monday.setDate(dt.getDate()-day);
+  return monday.toISOString().slice(0,10);
+}
+const weekMap={};
+days.forEach(d=>{ const wk=isoWeekKey(d); (weekMap[wk]=weekMap[wk]||[]).push(d); });
+const weekKeys=Object.keys(weekMap).sort();
+
+function statusRank(s){ return s==='anomalie'?0:(s==='attente'?1:2); }
+
+function aggregateForDays(periodDays, sitesToUse){
+  const rows = {};
+  periodDays.forEach(jour=>{
+    const dayData = DATA[jour]||{};
+    sitesToUse.forEach(s=>{
+      Object.entries(dayData[s]||{}).forEach(([med,d])=>{
+        if(!rows[med]) rows[med]={demande_patient:0,paye_patient:0,theorique:0,avance:0,nb_actes:0,a_rejet:false};
+        rows[med].demande_patient+=(d.demande_patient||0); rows[med].paye_patient+=d.paye_patient;
+        rows[med].theorique+=d.theorique; rows[med].avance+=d.avance;
+        rows[med].nb_actes+=d.nb_actes; rows[med].a_rejet = rows[med].a_rejet || d.a_rejet;
+      });
+    });
+  });
+  // dérive facture/écart/statut à partir des totaux agrégés (et non ligne par ligne avant somme)
+  Object.values(rows).forEach(d=>{
+    d.facture = d.theorique + d.demande_patient;
+    d.recu = d.avance + d.paye_patient;
+    d.ecart = d.facture - d.recu;
+    if(d.ecart <= 0.5) d.statut = 'solde';
+    else if((d.theorique - d.avance) > 0.5 && d.a_rejet) d.statut = 'anomalie';
+    else d.statut = 'attente';
+  });
+  return rows;
+}
+
+function totalsFromRows(rows){
+  let theorique=0, demande_patient=0, avance=0, paye_patient=0, nb_actes=0;
+  Object.values(rows).forEach(d=>{ theorique+=d.theorique; demande_patient+=d.demande_patient; avance+=d.avance; paye_patient+=d.paye_patient; nb_actes+=d.nb_actes; });
+  return {facture: theorique+demande_patient, theorique, avance, paye_patient, nb_actes, recu: avance+paye_patient};
+}
+
+/* ================= VUE MOIS ================= */
+function renderMois(){
+  const grid = document.getElementById('siteGrid');
+  let gridHtml = '';
+  ['SQ','Laon'].forEach(s=>{
+    const rows = aggregateForDays(days, [s]);
+    const t = totalsFromRows(rows);
+    const reste = t.facture - t.recu;
+    const label = reste<-0.5 ? 'Trop perçu' : 'Reste dehors';
+    const shown = Math.abs(reste)<0.5 ? 0 : Math.abs(reste);
+    gridHtml += `
+      <div class="siteCard">
+        <div class="siteName">${SITE_LABELS[s]} <span class="n">${t.nb_actes} actes</span></div>
+        <div class="miniRow">
+          <div class="miniK"><div class="l">Facturé</div><div class="v">${fmoney(t.facture)}</div></div>
+          <div class="miniK"><div class="l">Reçu</div><div class="v" style="color:#16a34a">${fmoney(t.recu)}</div></div>
+          <div class="miniK"><div class="l">${label}</div><div class="v" style="color:${shown<0.5?'#16a34a':'#d97706'}">${fmoney(shown)}</div></div>
+        </div>
+      </div>`;
+  });
+  grid.innerHTML = gridHtml;
+
+  const rowsAll = aggregateForDays(days, ['SQ','Laon']);
+  const tAll = totalsFromRows(rowsAll);
+  const resteAllRaw = tAll.facture - tAll.recu;
+  const resteAll = Math.abs(resteAllRaw)<0.5 ? 0 : Math.abs(resteAllRaw);
+  document.getElementById('totalBar').innerHTML = `
+    <div class="t"><div class="l">Total facturé (2 sites)</div><div class="v">${fmoney(tAll.facture)}</div></div>
+    <div class="t"><div class="l">Total reçu</div><div class="v">${fmoney(tAll.recu)}</div></div>
+    <div class="t"><div class="l">${resteAllRaw<-0.5?'Trop perçu':'Reste dehors'}</div><div class="v">${fmoney(resteAll)}</div></div>`;
+
+  const bandEl = document.getElementById('moisBand');
+  bandEl.className = 'band ' + (resteAll<500?'ok':'warn');
+  bandEl.innerHTML = resteAll<500
+    ? `✓ Quasiment tout ce qui a été facturé en juin est rentré (Sicorfé + patient) — écart résiduel de ${fmoney(resteAll)}, normal (dossiers encore en traitement).`
+    : `⚠️ ${fmoney(resteAll)} facturés en juin mais pas encore rentrés — voir le détail jour par jour pour identifier où.`;
+
+  renderChart();
+  renderPatientCard();
+}
+
+function renderChart(){
+  const ctx = document.getElementById('cumulChart').getContext('2d');
+  const labels = weekKeys.map(wk=>{
+    const w = weekMap[wk];
+    return `${fdateShort(w[0])} - ${fdateShort(w[w.length-1])}`;
+  });
+  const resteParSemaine = weekKeys.map(wk=>{
+    const rows = aggregateForDays(weekMap[wk], ['SQ','Laon']);
+    const t = totalsFromRows(rows);
+    return Math.round((t.facture - t.recu)*100)/100;
+  });
+
+  if(chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: labels,
+      datasets:[
+        {label:'Reste dehors', data:resteParSemaine, backgroundColor:'#f59e0b', borderRadius:4, maxBarThickness:48}
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{ticks:{callback:v=>fmoney(v)}, grid:{color:'#f1f5f9'}, beginAtZero:true},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+}
+
+function renderPatientCard(){
+  let especes=0, carte=0, cheque=0;
+  ['SQ','Laon'].forEach(s=>{ especes+=PATIENT_BANK[s].especes; carte+=PATIENT_BANK[s].carte; cheque+=PATIENT_BANK[s].cheque; });
+  const stelSQ=PATIENT_STELLAIRE.SQ, stelLaon=PATIENT_STELLAIRE.Laon, stelTot=stelSQ+stelLaon;
+
+  document.getElementById('patientTb').innerHTML = `
+    <tr><td>Espèces (automate)</td><td>${fmoney(PATIENT_BANK.SQ.especes)}</td><td>${fmoney(PATIENT_BANK.Laon.especes)}</td><td>${fmoney(especes)}</td></tr>
+    <tr><td>Carte TPE (net commissions)</td><td>${fmoney(PATIENT_BANK.SQ.carte)}</td><td>${fmoney(PATIENT_BANK.Laon.carte)}</td><td>${fmoney(carte)}</td></tr>
+    <tr><td>Chèques (net impayés)</td><td>${fmoney(PATIENT_BANK.SQ.cheque)}</td><td>${fmoney(PATIENT_BANK.Laon.cheque)}</td><td>${fmoney(cheque)}</td></tr>`;
+  const totSQ=PATIENT_BANK.SQ.especes+PATIENT_BANK.SQ.carte+PATIENT_BANK.SQ.cheque;
+  const totLaon=PATIENT_BANK.Laon.especes+PATIENT_BANK.Laon.carte+PATIENT_BANK.Laon.cheque;
+  document.getElementById('patientTf').innerHTML = `<tr><td>Total (banque)</td><td>${fmoney(totSQ)}</td><td>${fmoney(totLaon)}</td><td>${fmoney(totSQ+totLaon)}</td></tr>`;
+
+  document.getElementById('patientNote').innerHTML =
+    `<b>Payé patient déclaré dans Stellaire :</b> St-Quentin ${fmoney(stelSQ)} · Laon ${fmoney(stelLaon)} · Total ${fmoney(stelTot)} —
+     écart total : ${(totSQ+totLaon-stelTot)>=0?'+':''}${fmoney(totSQ+totLaon-stelTot)}.
+     Écart normal ce mois-ci : chèques de chirurgie hors Stellaire + suivi des dépôts espèces qui démarre tout juste.`;
+}
+
+/* ================= VUE JOUR / SEMAINE (drill-down) ================= */
+function getDaysForPeriod(){
+  if(mode==='jour') return [days[periodIdx]];
+  if(mode==='semaine') return weekMap[weekKeys[periodIdx]];
+  return days;
+}
+function periodLabel(){
+  if(mode==='jour') return fdateLong(days[periodIdx]);
+  if(mode==='semaine'){ const w=weekMap[weekKeys[periodIdx]]; return `Semaine du ${fdateShort(w[0])} au ${fdateShort(w[w.length-1])}`; }
+  return 'Juin 2026';
+}
+function prevPeriod(){ if(periodIdx>0){periodIdx--; renderDrill();} }
+function nextPeriod(){ const max = mode==='jour'? days.length-1 : weekKeys.length-1; if(periodIdx<max){periodIdx++; renderDrill();} }
+function setSite(s,btn){ site=s; document.querySelectorAll('#drillWrap .pill').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); renderDrill(); }
+
+function renderDrill(){
+  document.getElementById('periodLbl').textContent = periodLabel();
+  document.getElementById('dayTitle').textContent = periodLabel();
+
+  const periodDays = getDaysForPeriod();
+  const sitesToUse = site==='all' ? ['SQ','Laon'] : [site];
+  const rows = aggregateForDays(periodDays, sitesToUse);
+  const medList = Object.entries(rows).sort((a,b)=>b[1].facture-a[1].facture);
+
+  if(medList.length===0){
+    document.getElementById('headline').innerHTML=''; document.getElementById('band').innerHTML='';
+    document.getElementById('tb').innerHTML=''; document.getElementById('tf').innerHTML='';
+    document.getElementById('emptyMsg').style.display='block';
+    return;
+  }
+  document.getElementById('emptyMsg').style.display='none';
+
+  const t = totalsFromRows(rows);
+  const reste = Math.max(0, t.facture - t.recu);
+  const restOk = reste < 0.5;
+
+  document.getElementById('headline').innerHTML = `
+    <div class="hcard"><div class="hl">Facturé</div><div class="hv">${fmoney(t.facture)}</div><div class="hs">${t.nb_actes} actes</div></div>
+    <div class="hcard"><div class="hl">Reçu (Sicorfé + patient)</div><div class="hv" style="color:#16a34a">${fmoney(t.recu)}</div><div class="hs">avancé ${fmoney(t.avance)} + patient ${fmoney(t.paye_patient)}</div></div>
+    <div class="hcard reste ${restOk?'ok':''}"><div class="hl">Reste dehors</div><div class="hv" style="color:${restOk?'#16a34a':'#d97706'}">${fmoney(reste)}</div><div class="hs">${restOk?'tout est rentré':'à surveiller'}</div></div>`;
+
+  const bandEl = document.getElementById('band');
+  bandEl.className = 'band ' + (restOk?'ok':'warn');
+  bandEl.innerHTML = restOk ? `✓ Tout est rentré sur cette période.` : `⚠️ ${fmoney(reste)} facturés mais pas encore rentrés.`;
+
+  const statutBadge = s => `<span class="stt ${s}">${s==='solde'?'Soldé':s==='attente'?'En attente':'Anomalie'}</span>`;
+  document.getElementById('tb').innerHTML = medList.map(([med,d])=>{
+    const ecartCell = d.ecart>0.5 ? `<span class="ecart-bad">-${fmoneyPrec(d.ecart)}</span>` : `<span class="ecart-ok">—</span>`;
+    return `<tr><td>${med}</td><td>${d.nb_actes}</td><td>${fmoney(d.facture)}</td><td>${fmoney(d.theorique)}</td><td>${fmoney(d.avance)}</td><td>${ecartCell}</td><td>${statutBadge(d.statut)}</td></tr>`;
+  }).join('');
+  document.getElementById('tf').innerHTML = `<tr><td>Total</td><td>${t.nb_actes}</td><td>${fmoney(t.facture)}</td><td>${fmoney(t.theorique)}</td><td>${fmoney(t.avance)}</td><td>${(t.facture-t.recu)>0.5?'<span class="ecart-bad">-'+fmoneyPrec(t.facture-t.recu)+'</span>':'—'}</td><td></td></tr>`;
+}
+
+/* ================= NAVIGATION GLOBALE ================= */
+function setMode(m, btn){
+  mode = m;
+  document.querySelectorAll('.mb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(m==='mois'){
+    document.getElementById('moisView').style.display='block';
+    document.getElementById('drillWrap').style.display='none';
+    renderMois();
+  } else {
+    document.getElementById('moisView').style.display='none';
+    document.getElementById('drillWrap').style.display='block';
+    periodIdx = m==='jour' ? days.length-1 : weekKeys.length-1;
+    renderDrill();
+  }
+}
+function showDrill(){
+  document.querySelectorAll('.mb').forEach(b=>b.classList.remove('on'));
+  document.querySelector('.mb:nth-child(3)').classList.add('on'); // "Jour"
+  mode='jour'; periodIdx = days.length-1;
+  document.getElementById('moisView').style.display='none';
+  document.getElementById('drillWrap').style.display='block';
+  renderDrill();
+}
+
+renderMois();
+</script>
+</body>
+</html>

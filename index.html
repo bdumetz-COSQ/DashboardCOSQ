@@ -59,13 +59,14 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
 </head>
 <body>
 <div class="topbar">
-  <div><div class="tt">Dashboard COSQ</div><div class="ts">Winlogie · Août 2024 → Juin 2026</div></div>
+  <div><div class="tt">Dashboard COSQ</div><div class="ts">Winlogie · Sept. 2024 → 9 Juil. 2026</div></div>
   <div class="mg">
     <button class="mb on" onclick="setMode('jour',this)">Jour</button>
     <button class="mb" onclick="setMode('mois',this)">Mois</button>
     <button class="mb" onclick="setMode('annee',this)">Année</button>
     <button class="mb" onclick="setMode('cumul',this)">Cumul</button>
     <button class="mb" onclick="setMode('rappro',this)">Rappro.</button>
+    <button class="mb" onclick="setMode('patient',this)">Part Patient</button>
   </div>
 </div>
 
@@ -76,6 +77,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
       <button onclick="prevDay()">‹</button>
       <span id="dayLbl"></span>
       <button onclick="nextDay()">›</button>
+      <input type="date" id="jourPicker" onchange="jumpToDay(this.value)" style="margin-left:8px;border:1px solid #dbe3ee;border-radius:6px;padding:4px 6px;font-family:inherit;font-size:12px;color:#1a3a5c">
     </div>
     <!-- Mois -->
     <select class="sel" id="selMois" style="display:none" onchange="render()"></select>
@@ -114,7 +116,12 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
 
     <div class="card">
       <div class="ct" id="tblTitle">Détail</div>
-      <table class="tbl"><thead id="th"></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table>
+      <div style="overflow-x:auto"><table class="tbl" style="min-width:820px"><thead id="th"></thead><tbody id="tb"></tbody><tfoot id="tf"></tfoot></table></div>
+    </div>
+
+    <div class="card">
+      <div class="ct" id="topAbsTitle">TOP MOTIFS D'ABSENCE</div>
+      <table class="tbl" style="table-layout:auto"><thead><tr><th style="text-align:left;width:50%">Motif</th><th style="width:25%">Absences</th><th style="width:25%">% du total</th></tr></thead><tbody id="topAbsTb"></tbody></table>
     </div>
   </div>
 
@@ -124,27 +131,73 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
       <div style="display:flex;gap:6px" id="rapproPeriodPills">
         <button class="pill on" onclick="setRapproMode('mois',this)">Mois</button>
         <button class="pill" onclick="setRapproMode('cumul',this)">Cumul</button>
+        <button class="pill" onclick="setRapproMode('semaine',this)">Semaine</button>
         <button class="pill" onclick="setRapproMode('jour',this)">Jour</button>
       </div>
       <div class="dn" id="rapproJourNav" style="display:none">
         <button onclick="prevRapproDay()">‹</button>
         <span id="rapproDayLbl"></span>
         <button onclick="nextRapproDay()">›</button>
+        <input type="date" id="rapproJourPicker" onchange="jumpToRapproDay(this.value)" style="margin-left:8px;border:1px solid #dbe3ee;border-radius:6px;padding:4px 6px;font-family:inherit;font-size:12px;color:#1a3a5c">
+      </div>
+      <div class="dn" id="rapproWeekNav" style="display:none">
+        <button onclick="prevRapproWeek()">‹</button>
+        <span id="rapproWeekLbl"></span>
+        <button onclick="nextRapproWeek()">›</button>
       </div>
       <select class="sel" id="selRapproMois" style="display:block" onchange="renderRappro()"></select>
+      <div style="display:flex;gap:6px" id="rapproSitePills">
+        <button class="pill on" onclick="setRapproSite('all',this)">COSQ (Tous)</button>
+        <button class="pill" onclick="setRapproSite('SQ',this)">Saint-Quentin</button>
+        <button class="pill" onclick="setRapproSite('Laon',this)">Laon</button>
+      </div>
     </div>
 
-    <div class="kr" id="rapproKpi"></div>
+    <div class="kr" id="rapproKpi" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"></div>
 
-    <div class="card">
-      <div class="ct">RAPPROCHEMENT PAR MÉDECIN — FACTURÉ (STELLAIR) VS PAYÉ (SICORFÉ)</div>
-      <table class="tbl"><thead id="rapproTh"></thead><tbody id="rapproTb"></tbody><tfoot id="rapproTf"></tfoot></table>
-      <div style="font-size:11px;color:#94a3b8;margin-top:10px">Suivi Sicorfé disponible pour 3 praticiens actuellement : Dr Boucenna (Saint-Quentin), Dr Turki (Saint-Quentin), Dr Boucenna (Laon). Les autres médecins ne sont pas encore raccordés à Sicorfé.</div>
+    <div class="card" id="rapproCalCard" style="margin-top:16px;display:none">
+      <div class="ct" id="rapproCalTitle">VUE CALENDRIER — OK / À SURVEILLER</div>
+      <div id="rapproCal" style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px"></div>
+      <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:#64748b">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#16a34a;margin-right:5px"></span>OK</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#d97706;margin-right:5px"></span>À surveiller</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#dc2626;margin-right:5px"></span>Écart notable</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#e2e8f0;margin-right:5px"></span>Pas de données</span>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="ct" id="anomTitle">DOSSIERS À TRAITER</div>
-      <table class="tbl"><thead id="anomTh"></thead><tbody id="anomTb"></tbody></table>
+    <div style="font-size:11px;color:#94a3b8;margin-top:4px;padding:0 2px">Suivi Sicorfé : Boucenna Saint-Quentin, Turki, Boucenna Laon — période février → 8 juillet 2026. Le <b>Cumul</b> démarre officiellement en <b>mars 2026</b> (février = démarrage, consultable via Mois).</div>
+  </div>
+
+  <!-- ── PART PATIENT (CB) ────────────────────────────────────────────── -->
+  <div id="patientView" style="display:none">
+    <div class="ctrls">
+      <select class="sel" id="selPatientMois" onchange="renderPatient()"></select>
+      <div style="display:flex;gap:6px" id="patientSitePills">
+        <button class="pill on" onclick="setPatientSite('all',this)">COSQ (Tous)</button>
+        <button class="pill" onclick="setPatientSite('SQ',this)">Saint-Quentin</button>
+        <button class="pill" onclick="setPatientSite('Laon',this)">Laon</button>
+      </div>
+    </div>
+
+    <div class="card" style="border:1px solid #e2e8f0">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div class="ct" style="margin:0">CARTE BANCAIRE (CB)</div>
+        <span style="font-size:11px;font-weight:600;color:#166534;background:#dcfce7;padding:4px 10px;border-radius:20px">📅 Varie selon le mois sélectionné</span>
+      </div>
+      <div class="kr" id="patientKpi" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:10px"></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:10px">CB reçue en banque = remises "REM. CARTE OU EUROCHQ" (relevés BNP). Comparaison à Stellair disponible uniquement pour <b>Saint-Quentin</b> (Boucenna + Turki), de février à mai 2026. Le rapprochement se fait au <b>mois</b> (le jour à jour est trop bruité par les délais de remise bancaire).</div>
+    </div>
+
+    <div class="card" style="margin-top:16px;border:1px solid #e2e8f0;background:#fafbfc">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div class="ct" style="margin:0">CHÈQUES + ESPÈCES</div>
+        <span style="font-size:11px;font-weight:600;color:#1a3a5c;background:#e8f0fb;padding:4px 10px;border-radius:20px">📌 Cumul complet — indépendant du mois choisi ci-dessus</span>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:6px">Période couverte : février → 8 juillet 2026</div>
+      <div class="kr" id="patientCumulKpi" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:10px"></div>
+      <div id="patientCumulDetail" style="margin-top:14px"></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:10px">Dépôts irrégüliers (par lots) : chèques remis par bordereau tous les 3-6 semaines, espèces déposées via automate — pratique démarrée le <b>11 juin 2026</b>. Un rapprochement mensuel n'aurait pas de sens ici ; le cumul reste le seul niveau pertinent.</div>
     </div>
   </div>
 </div>
@@ -152,6 +205,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
 <script src="data_daily.js"></script>
 <script src="data_monthly.js"></script>
 <script src="data_rappro.js"></script>
+<script src="data_patient.js"></script>
 <script src="chart.js"></script>
 <script>
 const MFR=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
@@ -167,7 +221,7 @@ const evolHtml=(curr,prev)=>{
   if(!prev||prev===0) return '';
   const p=Math.round((curr-prev)/prev*1000)/10;
   const cls=p>0?'up':p<0?'dn':'neu';
-  return `<div class="evol ${cls}">${p>0?'↑':p<0?'↓':'→'} ${Math.abs(p)}% vs période préc.</div>`;
+  return `<div class="evol ${cls}">${p>0?'↑':p<0?'↓':'→'} ${Math.abs(p)}% vs année préc.</div>`;
 };
 
 let mode='jour', site='all', jIdx=0, cM=null, cS=null;
@@ -191,10 +245,13 @@ function setMode(m,el){
   mode=m;
   document.querySelectorAll('.mb').forEach(b=>b.classList.remove('on')); el.classList.add('on');
   const isRappro=m==='rappro';
-  document.getElementById('caView').style.display=isRappro?'none':'block';
+  const isPatient=m==='patient';
+  document.getElementById('caView').style.display=(isRappro||isPatient)?'none':'block';
   document.getElementById('rapproView').style.display=isRappro?'block':'none';
-  document.getElementById('ctrlBar').style.display=isRappro?'none':'flex';
+  document.getElementById('patientView').style.display=isPatient?'block':'none';
+  document.getElementById('ctrlBar').style.display=(isRappro||isPatient)?'none':'flex';
   if(isRappro){ renderRappro(); return; }
+  if(isPatient){ renderPatient(); return; }
   document.getElementById('jourNav').style.display=m==='jour'?'flex':'none';
   document.getElementById('selMois').style.display=m==='mois'?'block':'none';
   document.getElementById('yrChecks').style.display=(m==='annee'||m==='cumul')?'flex':'none';
@@ -204,31 +261,46 @@ function setMode(m,el){
 function setSite(s,el){site=s;document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');render();}
 function prevDay(){if(jIdx>0){jIdx--;render();}}
 function nextDay(){if(jIdx<JOURS.length-1){jIdx++;render();}}
+function jumpToDay(dateStr){
+  const idx=JOURS.indexOf(dateStr);
+  if(idx>=0){ jIdx=idx; render(); }
+}
+document.getElementById('jourPicker').min=JOURS[0];
+document.getElementById('jourPicker').max=JOURS[JOURS.length-1];
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 function getCA(d){return site==='all'?d.ca:site==='SQ'?d.ca_sq:d.ca_laon;}
 function getAcq(d){return site==='all'?d.actes:site==='SQ'?d.actes_sq:d.actes_laon;}
+function getPay(d){return site==='all'?d.payants:site==='SQ'?d.payants_sq:d.payants_laon;}
+function getPostop(d){return site==='all'?d.postop:site==='SQ'?d.postop_sq:d.postop_laon;}
+function getAG(d){return site==='all'?d.ag:site==='SQ'?d.ag_sq:d.ag_laon;}
+function getAbsN(d){return site==='all'?d.abs:site==='SQ'?d.abs_sq:d.abs_laon;}
 
 function renderKpi(d,prev,label){
   const ca=getCA(d), caPrev=prev?getCA(prev):0;
   const ac=getAcq(d), acPrev=prev?getAcq(prev):0;
-  const pan=d.payants>0?d.ca/d.payants:0, panPrev=prev&&prev.payants>0?prev.ca/prev.payants:0;
+  const pay=getPay(d), payPrev=prev?getPay(prev):0;
+  const pan=pay>0?ca/pay:0, panPrev=payPrev>0?caPrev/payPrev:0;
+  const absN=getAbsN(d);
+  const txAbs=ac>0?Math.round(absN/ac*1000)/10:0;
   document.getElementById('kpiRow').innerHTML=`
     <div class="kpi"><div class="kl">CA ${label}</div><div class="kv">${fcak(ca)}</div><div class="ks">${fca(ca)}</div>${evolHtml(ca,caPrev)}</div>
     <div class="kpi"><div class="kl">Patients honorés</div><div class="kv">${ac.toLocaleString('fr-FR')}</div><div class="ks">${label}</div>${evolHtml(ac,acPrev)}</div>
     <div class="kpi"><div class="kl">Panier moyen</div><div class="kv">${pan.toFixed(2)} €</div><div class="ks">actes payants</div>${evolHtml(pan,panPrev)}</div>
-    <div class="kpi"><div class="kl">Taux absentéisme</div><div class="kv ${txCls(d.tx_abs)}">${d.tx_abs}%</div><div class="ks">${d.abs} absences</div></div>`;
+    <div class="kpi"><div class="kl">Taux absentéisme</div><div class="kv ${txCls(txAbs)}">${txAbs}%</div><div class="ks">${absN} absences</div></div>`;
 }
 
 function renderBand(d){
+  const pay=getPay(d), postop=getPostop(d), ag=getAG(d), absN=getAbsN(d), ac=getAcq(d);
+  const txAbs=ac>0?Math.round(absN/ac*1000)/10:0;
   document.getElementById('band').innerHTML=`
-    <div class="bi"><div class="bd" style="background:#2a78d6"></div><span>Payants</span><span class="bv">${d.payants}</span></div>
+    <div class="bi"><div class="bd" style="background:#2a78d6"></div><span>Payants</span><span class="bv">${pay}</span></div>
     <span style="color:#e2e8f0">·</span>
-    <div class="bi"><div class="bd" style="background:#d97706"></div><span>Postop</span><span class="bv">${d.postop}</span><span class="bp"> (${d.actes>0?Math.round(d.postop/d.actes*100):0}%)</span></div>
+    <div class="bi"><div class="bd" style="background:#d97706"></div><span>Postop</span><span class="bv">${postop}</span><span class="bp"> (${ac>0?Math.round(postop/ac*100):0}%)</span></div>
     <span style="color:#e2e8f0">·</span>
-    <div class="bi"><div class="bd" style="background:#888"></div><span>AG</span><span class="bv">${d.ag}</span><span class="bp"> (${d.actes>0?Math.round(d.ag/d.actes*100):0}%)</span></div>
+    <div class="bi"><div class="bd" style="background:#888"></div><span>AG</span><span class="bv">${ag}</span><span class="bp"> (${ac>0?Math.round(ag/ac*100):0}%)</span></div>
     <span style="color:#e2e8f0">·</span>
-    <div class="bi"><div class="bd" style="background:#dc2626"></div><span>Absences</span><span class="bv">${d.abs}</span><span class="bp"> (${d.tx_abs}%)</span></div>`;
+    <div class="bi"><div class="bd" style="background:#dc2626"></div><span>Absences</span><span class="bv">${absN}</span><span class="bp"> (${txAbs}%)</span></div>`;
 }
 
 function renderDonut(ca_sq,ca_laon){
@@ -243,37 +315,68 @@ function renderDonut(ca_sq,ca_laon){
 
 function renderMedTable(medList,cols){
   document.getElementById('th').innerHTML='<tr>'+cols.map((c,i)=>`<th style="${i===0?'text-align:left;':''}width:${c.w}">${c.h}</th>`).join('')+'</tr>';
-  let totCA=0,totAc=0,totPost=0,totAG=0,totAbs=0,totPay=0;
+  let totCA=0,totAc=0,totReel=0,totPost=0,totAG=0,totAbs=0,totPay=0,totAV=0,totSKIA=0,totCV=0,totBO=0,totCS=0;
   document.getElementById('tb').innerHTML=medList.map(m=>{
-    totCA+=m.ca;totAc+=m.actes;totPost+=m.postop;totAG+=m.ag;totAbs+=m.abs;totPay+=m.payants;
+    const reel=m.patients_reels!==undefined?m.patients_reels:(m.actes-m.abs);
+    totCA+=m.ca;totAc+=m.actes;totReel+=reel;totPost+=m.postop;totAG+=m.ag;totAbs+=m.abs;totPay+=m.payants;
+    totAV+=m.nb_av||0;totSKIA+=m.nb_skia||0;totCV+=m.nb_cv||0;totBO+=m.nb_bo||0;totCS+=m.nb_cs||0;
     const tx=m.actes>0?Math.round(m.abs/m.actes*1000)/10:0;
     const pan=m.payants>0?(m.ca/m.payants).toFixed(2)+' €':'—';
     return`<tr><td>${m.nom}<span class="${m.site==='SQ'?'bsq':'blaon'}">${m.site}</span></td>
       <td>${fca(m.ca)}</td><td>${m.actes}</td>
+      <td style="font-weight:600;color:#16a34a">${reel}</td>
       <td style="color:#d97706">${m.postop}</td><td style="color:#888">${m.ag}</td>
       <td style="color:#dc2626">${m.abs}</td>
       <td style="font-weight:600;color:${txCol(tx)}">${tx}%</td>
-      <td style="color:#64748b">${pan}</td></tr>`;}).join('');
+      <td style="color:#64748b">${pan}</td>
+      <td>${m.nb_av||0}</td><td>${m.nb_skia||0}</td><td>${m.nb_cv||0}</td><td>${m.nb_bo||0}</td><td>${m.nb_cs||0}</td></tr>`;}).join('');
   const txT=totAc>0?Math.round(totAbs/totAc*1000)/10:0;
   const panT=totPay>0?(totCA/totPay).toFixed(2)+' €':'—';
   document.getElementById('tf').innerHTML=`<tr><td>Total</td><td>${fca(totCA)}</td><td>${totAc}</td>
+    <td style="font-weight:600;color:#16a34a">${totReel}</td>
     <td style="color:#d97706">${totPost}</td><td style="color:#888">${totAG}</td>
     <td style="color:#dc2626">${totAbs}</td>
-    <td style="font-weight:600;color:${txCol(txT)}">${txT}%</td><td>${panT}</td></tr>`;
+    <td style="font-weight:600;color:${txCol(txT)}">${txT}%</td><td>${panT}</td>
+    <td>${totAV}</td><td>${totSKIA}</td><td>${totCV}</td><td>${totBO}</td><td>${totCS}</td></tr>`;
 }
 
-const MED_COLS=[{h:'Médecin',w:'28%'},{h:'CA',w:'17%'},{h:'Patients',w:'10%'},{h:'Postop',w:'9%'},{h:'AG',w:'7%'},{h:'Abs',w:'9%'},{h:'Tx abs',w:'10%'},{h:'Panier',w:'10%'}];
+const MED_COLS=[{h:'Médecin',w:'15%'},{h:'CA',w:'9%'},{h:'Patients',w:'6%'},{h:'Réels',w:'6%'},{h:'Postop',w:'6%'},{h:'AG',w:'5%'},{h:'Abs',w:'5%'},{h:'Tx abs',w:'6%'},{h:'Panier',w:'8%'},{h:'AV',w:'5%'},{h:'SKIA',w:'6%'},{h:'CV',w:'5%'},{h:'BO',w:'5%'},{h:'CS',w:'5%'}];
+
+function renderTopAbsRaisons(medList,label){
+  document.getElementById('topAbsTitle').textContent=`TOP MOTIFS D'ABSENCE — ${label}`;
+  const totals={};
+  let grandTotal=0;
+  medList.forEach(m=>{
+    const ar=m.abs_raisons||{};
+    Object.entries(ar).forEach(([rai,n])=>{ totals[rai]=(totals[rai]||0)+n; grandTotal+=n; });
+  });
+  const rows=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  if(rows.length===0){
+    document.getElementById('topAbsTb').innerHTML=`<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:14px">Aucune absence sur cette période</td></tr>`;
+    return;
+  }
+  document.getElementById('topAbsTb').innerHTML=rows.map(([rai,n])=>{
+    const pct=grandTotal>0?Math.round(n/grandTotal*1000)/10:0;
+    return `<tr><td style="text-align:left">${rai}</td><td style="font-weight:600;color:#dc2626">${n}</td><td style="color:#64748b">${pct}%</td></tr>`;
+  }).join('');
+}
+
+function shiftYear(dateStr,delta){
+  const[y,m,d]=dateStr.split('-').map(Number);
+  return `${y+delta}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
 
 // ── JOUR ────────────────────────────────────────────────────────────────
 function renderJour(){
   const date=JOURS[jIdx];
   const d=DAILY.daily[date];
-  const prevDate=jIdx>0?JOURS[jIdx-1]:null;
-  const prev=prevDate?DAILY.daily[prevDate]:null;
+  const prevDate=shiftYear(date,-1);
+  const prev=DAILY.daily[prevDate]||null;
   document.getElementById('chartLbl').textContent=`CA par médecin — ${fdts(date)}`;
   document.getElementById('cSiteTitle').textContent='SQ vs Laon';
   document.getElementById('tblTitle').textContent=`Détail par médecin — ${fdt(date)}`;
   document.getElementById('dayLbl').textContent=fdt(date);
+  document.getElementById('jourPicker').value=date;
   renderKpi(d,prev,fdts(date)); renderBand(d);
   const meds=Object.values(DAILY.med_day[date]||{}).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
   if(cM)cM.destroy();
@@ -286,6 +389,7 @@ function renderJour(){
               y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>fcak(v)}}}}});
   renderDonut(d.ca_sq,d.ca_laon);
   renderMedTable(meds,MED_COLS);
+  renderTopAbsRaisons(meds,fdts(date));
   document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>Saint-Quentin</span><span><b style="background:#1baf7a"></b>Laon</span>';
 }
 
@@ -295,13 +399,12 @@ function renderMois(){
   const allMois=Object.keys(MONTHLY.monthly).sort();
   const idx=allMois.indexOf(mois);
   const d=MONTHLY.monthly[mois];
-  const prev=idx>0?MONTHLY.monthly[allMois[idx-1]]:null;
   const prevYearKey=mois.replace(/^\d{4}/,y=>String(parseInt(y)-1));
-  const prevYear=MONTHLY.monthly[prevYearKey];
+  const prevYear=MONTHLY.monthly[prevYearKey]||null;
   document.getElementById('chartLbl').textContent=`CA 6 derniers mois`;
   document.getElementById('cSiteTitle').textContent='SQ vs Laon';
   document.getElementById('tblTitle').textContent=`Détail par médecin — ${fmois(mois)}`;
-  renderKpi(d,prev,fmois(mois)); renderBand(d);
+  renderKpi(d,prevYear,fmois(mois)); renderBand(d);
   // Graphique 6 derniers mois
   const last6=allMois.slice(Math.max(0,idx-5),idx+1);
   if(cM)cM.destroy();
@@ -318,6 +421,7 @@ function renderMois(){
   document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>SQ (mois sélectionné)</span><span><b style="background:#1baf7a"></b>Laon (mois sélectionné)</span>';
   const meds=Object.values(MONTHLY.med_monthly[mois]||{}).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
   renderMedTable(meds,MED_COLS);
+  renderTopAbsRaisons(meds,fmois(mois));
 }
 
 // ── ANNÉE ───────────────────────────────────────────────────────────────
@@ -326,7 +430,10 @@ function renderAnnee(){
   if(!years.length){document.getElementById('kpiRow').innerHTML='<div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:20px">Sélectionner au moins une année</div>';return;}
   // Agréger les années sélectionnées
   const agg=(field)=>years.reduce((s,y)=>s+(MONTHLY.yearly[y]?.[field]||0),0);
-  const d={ca:agg('ca'),actes:agg('actes'),payants:agg('payants'),postop:agg('postop'),ag:agg('ag'),abs:agg('abs'),ca_sq:agg('ca_sq'),ca_laon:agg('ca_laon'),actes_sq:agg('actes_sq'),actes_laon:agg('actes_laon'),tx_abs:0};
+  const d={ca:agg('ca'),actes:agg('actes'),payants:agg('payants'),postop:agg('postop'),ag:agg('ag'),abs:agg('abs'),
+    ca_sq:agg('ca_sq'),ca_laon:agg('ca_laon'),actes_sq:agg('actes_sq'),actes_laon:agg('actes_laon'),
+    payants_sq:agg('payants_sq'),payants_laon:agg('payants_laon'),postop_sq:agg('postop_sq'),postop_laon:agg('postop_laon'),
+    ag_sq:agg('ag_sq'),ag_laon:agg('ag_laon'),abs_sq:agg('abs_sq'),abs_laon:agg('abs_laon'),tx_abs:0};
   d.tx_abs=d.actes>0?Math.round(d.abs/d.actes*1000)/10:0;
   const allYears=Object.keys(MONTHLY.yearly).sort();
   const prevYear=years.length===1?allYears[allYears.indexOf(years[0])-1]:null;
@@ -354,13 +461,17 @@ function renderAnnee(){
   const medMap={};
   years.forEach(y=>{
     Object.entries(MONTHLY.med_yearly[y]||{}).forEach(([id,m])=>{
-      if(!medMap[id]) medMap[id]={...m,ca:0,actes:0,payants:0,postop:0,ag:0,abs:0};
+      if(!medMap[id]) medMap[id]={...m,ca:0,actes:0,payants:0,postop:0,ag:0,abs:0,nb_av:0,nb_skia:0,nb_cv:0,nb_bo:0,nb_cs:0,patients_reels:0,abs_raisons:{}};
       medMap[id].ca+=m.ca; medMap[id].actes+=m.actes; medMap[id].payants+=m.payants;
       medMap[id].postop+=m.postop; medMap[id].ag+=m.ag; medMap[id].abs+=m.abs;
+      medMap[id].nb_av+=m.nb_av||0; medMap[id].nb_skia+=m.nb_skia||0; medMap[id].nb_cv+=m.nb_cv||0; medMap[id].nb_bo+=m.nb_bo||0; medMap[id].nb_cs+=m.nb_cs||0;
+      medMap[id].patients_reels+=m.patients_reels!==undefined?m.patients_reels:(m.actes-m.abs);
+      Object.entries(m.abs_raisons||{}).forEach(([rai,n])=>{ medMap[id].abs_raisons[rai]=(medMap[id].abs_raisons[rai]||0)+n; });
     });
   });
   const meds=Object.values(medMap).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
   renderMedTable(meds,MED_COLS);
+  renderTopAbsRaisons(meds,label+siteLbl);
 }
 
 // ── CUMUL ───────────────────────────────────────────────────────────────
@@ -411,6 +522,12 @@ function renderCumul(){
       <td style="font-weight:500">${fca(r.cumSel)}</td><td style="color:#2a78d6">${fca(r.cumSQ)}</td><td style="color:#1baf7a">${fca(r.cumLaon)}</td></tr>`;}).join('');
   document.getElementById('tf').innerHTML=`<tr><td>Moy./mois</td><td>${fca(last.cumSel/rows.length)}</td><td>—</td>
     <td>${fca(last.cumSel)}</td><td style="color:#2a78d6">${fca(last.cumSQ)}</td><td style="color:#1baf7a">${fca(last.cumLaon)}</td></tr>`;
+  // Top motifs d'absence cumulés sur toute la période sélectionnée
+  const medsAll=[];
+  allMois.forEach(m=>{
+    Object.values(MONTHLY.med_monthly[m]||{}).filter(mm=>site==='all'||mm.site===site).forEach(mm=>medsAll.push(mm));
+  });
+  renderTopAbsRaisons(medsAll, label+siteLbl);
 }
 
 function render(){
@@ -422,103 +539,237 @@ function render(){
 render();
 
 // ── RAPPROCHEMENT (Stellair/Winlogie vs Sicorfé vs Banque) ─────────────
-let rapproMode='mois', rapproJIdx=0;
+let rapproMode='mois', rapproJIdx=0, rapproWIdx=0;
 const RAPPRO_JOURS=Object.keys(RAPPRO.daily).sort();
+const RAPPRO_SEMAINES=Object.keys(RAPPRO.weekly).sort();
 rapproJIdx=RAPPRO_JOURS.length-1;
+rapproWIdx=RAPPRO_SEMAINES.length-1;
 const selRapproMois=document.getElementById('selRapproMois');
 Object.keys(RAPPRO.monthly).sort().reverse().forEach(m=>{
   const o=document.createElement('option'); o.value=m; o.textContent=fmois(m); selRapproMois.appendChild(o);
 });
 selRapproMois.value=Object.keys(RAPPRO.monthly).sort().pop();
 
+function weekLabel(wkStart){
+  const d1=new Date(wkStart);
+  const d2=new Date(d1); d2.setDate(d1.getDate()+6);
+  const f=d=>`${d.getDate()} ${MFR[d.getMonth()]}`;
+  return `Sem. du ${f(d1)} au ${f(d2)}`;
+}
+
 function setRapproMode(m,el){
   rapproMode=m;
   document.querySelectorAll('#rapproPeriodPills .pill').forEach(p=>p.classList.remove('on')); el.classList.add('on');
   document.getElementById('rapproJourNav').style.display=m==='jour'?'flex':'none';
+  document.getElementById('rapproWeekNav').style.display=m==='semaine'?'flex':'none';
   document.getElementById('selRapproMois').style.display=m==='mois'?'block':'none';
   renderRappro();
 }
 function prevRapproDay(){if(rapproJIdx>0){rapproJIdx--;renderRappro();}}
 function nextRapproDay(){if(rapproJIdx<RAPPRO_JOURS.length-1){rapproJIdx++;renderRappro();}}
+function prevRapproWeek(){if(rapproWIdx>0){rapproWIdx--;renderRappro();}}
+function nextRapproWeek(){if(rapproWIdx<RAPPRO_SEMAINES.length-1){rapproWIdx++;renderRappro();}}
+function jumpToRapproDay(dateStr){
+  const idx=RAPPRO_JOURS.indexOf(dateStr);
+  if(idx>=0){ rapproJIdx=idx; renderRappro(); }
+}
+document.getElementById('rapproJourPicker').min=RAPPRO_JOURS[0];
+document.getElementById('rapproJourPicker').max=RAPPRO_JOURS[RAPPRO_JOURS.length-1];
 function round2(v){return Math.round(v*100)/100;}
 
-function statutBadge(d){
-  if(d.nb_erreur>0) return `<span class="bad">Erreur (${d.nb_erreur})</span>`;
-  if(d.nb_anomalie>0) return `<span class="warn">${d.nb_anomalie} à traiter</span>`;
-  return `<span class="ok">OK</span>`;
+let rapproSite='all';
+function setRapproSite(s,el){
+  rapproSite=s;
+  document.querySelectorAll('#rapproSitePills .pill').forEach(p=>p.classList.remove('on')); el.classList.add('on');
+  renderRappro();
+}
+
+function sumMeds(meds){
+  const s={facture_amo:0,facture_amc:0,paye_ro:0,paye_rc:0,du_amo:0,du_amc:0,du_attente:0,du_anomalie:0,nb_dossiers:0};
+  meds.forEach(m=>{
+    s.facture_amo+=m.facture_amo; s.facture_amc+=m.facture_amc;
+    s.paye_ro+=m.paye_ro; s.paye_rc+=m.paye_rc;
+    s.du_amo+=m.du_amo; s.du_amc+=m.du_amc;
+    s.du_attente+=m.du_attente||0; s.du_anomalie+=m.du_anomalie||0;
+    s.nb_dossiers+=m.nb_dossiers;
+  });
+  s.facture_total=round2(s.facture_amo+s.facture_amc);
+  s.paye_total=round2(s.paye_ro+s.paye_rc);
+  s.du_total=round2(s.du_amo+s.du_amc);
+  s.taux_paye=s.facture_total>0?Math.round(s.paye_total/s.facture_total*1000)/10:0;
+  return s;
 }
 
 function renderRapproKpi(d,label){
+  const enCoursHtml = d.du_attente>1 ? `
+    <div class="kpi"><div class="kl">En cours de traitement</div><div class="kv" style="color:#2a78d6;font-size:26px">${fca(d.du_attente)}</div><div class="ks">transmis récemment, normal</div></div>` : '';
   document.getElementById('rapproKpi').innerHTML=`
-    <div class="kpi"><div class="kl">Facturé AMO+AMC ${label}</div><div class="kv">${fcak(d.facture_total)}</div><div class="ks">${fca(d.facture_total)}</div></div>
-    <div class="kpi"><div class="kl">Payé confirmé</div><div class="kv" style="color:#16a34a">${fcak(d.paye_total)}</div><div class="ks">${d.taux_paye}% du facturé</div></div>
-    <div class="kpi"><div class="kl">Écart / dû</div><div class="kv" style="color:${d.du_total>0?'#d97706':'#16a34a'}">${fca(d.du_total)}</div><div class="ks">AMO ${fca(d.du_amo)} · AMC ${fca(d.du_amc)}</div></div>
-    <div class="kpi"><div class="kl">Dossiers à traiter</div><div class="kv ${d.nb_erreur>0?'bad':d.nb_anomalie>0?'warn':'ok'}">${d.nb_anomalie+d.nb_erreur}</div><div class="ks">sur ${d.nb_dossiers} dossiers</div></div>`;
+    <div class="kpi"><div class="kl">Facturé Stellair (AMO+AMC) — ${label}</div><div class="kv" style="font-size:30px">${fca(d.facture_total)}</div></div>
+    <div class="kpi"><div class="kl">Payé confirmé Sicorfé</div><div class="kv" style="color:#16a34a;font-size:30px">${fca(d.paye_total)}</div><div class="ks">${d.taux_paye}% du facturé</div></div>
+    <div class="kpi"><div class="kl">Écart (anomalie/rejet)</div><div class="kv" style="color:${d.du_anomalie>1?'#dc2626':'#16a34a'};font-size:26px">${fca(d.du_anomalie)}</div><div class="ks">${d.du_anomalie>1?'à surveiller':'rien à signaler'}</div></div>
+    ${enCoursHtml}`;
 }
 
-function renderRapproMedTable(meds){
-  document.getElementById('rapproTh').innerHTML=`<tr><th style="text-align:left">Médecin</th><th>Facturé</th><th>Payé</th><th>Dû</th><th>Statut</th></tr>`;
-  let tF=0,tP=0,tD=0,tAnom=0,tErr=0,tDoss=0;
-  document.getElementById('rapproTb').innerHTML=meds.map(m=>{
-    tF+=m.facture_total;tP+=m.paye_total;tD+=m.du_total;tAnom+=m.nb_anomalie;tErr+=m.nb_erreur;tDoss+=m.nb_dossiers;
-    return `<tr><td>${m.nom}<span class="${m.site==='SQ'?'bsq':'blaon'}">${m.site}</span></td>
-      <td>${fca(m.facture_total)}</td><td>${fca(m.paye_total)}</td>
-      <td style="color:${m.du_total>0?'#d97706':'#16a34a'}">${fca(m.du_total)}</td>
-      <td>${statutBadge(m)}</td></tr>`;
-  }).join('');
-  if(meds.length===0){
-    document.getElementById('rapproTb').innerHTML=`<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:14px">Aucune donnée Sicorfé sur cette période</td></tr>`;
-  }
-  const totD={nb_anomalie:tAnom,nb_erreur:tErr};
-  document.getElementById('rapproTf').innerHTML=`<tr><td>Total</td><td>${fca(tF)}</td><td>${fca(tP)}</td>
-    <td style="color:${tD>0?'#d97706':'#16a34a'}">${fca(tD)}</td><td>${statutBadge(totD)}</td></tr>`;
-}
+function renderRapproCalendar(mo){
+  const card=document.getElementById('rapproCalCard');
+  if(mo===null){ card.style.display='none'; return; }
+  card.style.display='block';
+  document.getElementById('rapproCalTitle').textContent=`VUE CALENDRIER — ${fmois(mo).toUpperCase()}`;
+  const [y,m]=mo.split('-').map(Number);
+  const firstDay=new Date(y,m-1,1);
+  const nbDays=new Date(y,m,0).getDate();
+  let startOffset=firstDay.getDay()-1; if(startOffset<0) startOffset=6;
 
-function renderAnomalies(list,label){
-  document.getElementById('anomTitle').textContent=`DOSSIERS À TRAITER — ${label} (${list.length})`;
-  document.getElementById('anomTh').innerHTML=`<tr><th style="text-align:left">Date</th><th style="text-align:left">Médecin</th><th style="text-align:left">Patient</th><th>Montant</th><th>Dû AMO</th><th>Dû AMC</th><th style="text-align:left">Statut</th></tr>`;
-  if(list.length===0){
-    document.getElementById('anomTb').innerHTML=`<tr><td colspan="7" style="text-align:center;color:#16a34a;padding:14px">Aucun dossier en attente de traitement</td></tr>`;
-    return;
+  const JLBL=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  let html=JLBL.map(j=>`<div style="text-align:center;font-size:10px;font-weight:600;color:#94a3b8;padding-bottom:2px">${j}</div>`).join('');
+  for(let i=0;i<startOffset;i++) html+='<div></div>';
+
+  for(let day=1; day<=nbDays; day++){
+    const dstr=`${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const meds=Object.values(RAPPRO.med_day[dstr]||{}).filter(mm=>rapproSite==='all'||mm.site===rapproSite);
+    let color='#e2e8f0', title='Pas de données Sicorfé', amountLbl='';
+    if(meds.length>0){
+      const s=sumMeds(meds);
+      if(s.du_anomalie>500){ color='#dc2626'; title=`Écart notable : ${fca(s.du_anomalie)}`; amountLbl=s.du_anomalie>=1000?fcak(s.du_anomalie):Math.round(s.du_anomalie)+'€'; }
+      else if(s.du_anomalie>0.5){ color='#d97706'; title=`À surveiller : ${fca(s.du_anomalie)}`; amountLbl=s.du_anomalie>=1000?fcak(s.du_anomalie):Math.round(s.du_anomalie)+'€'; }
+      else { color='#16a34a'; title=`OK — ${fca(s.facture_total)} facturé`; }
+    }
+    html+=`<div onclick="jumpRapproFromCal('${dstr}')" title="${title}" style="cursor:pointer;aspect-ratio:1;border-radius:6px;background:${color}15;border:1.5px solid ${color};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:11px;font-weight:600;color:${color}">
+      <span>${day}</span>${amountLbl?`<span style="font-size:9px;font-weight:700">${amountLbl}</span>`:''}</div>`;
   }
-  const sorted=[...list].sort((a,b)=>(b.du_amo+b.du_amc)-(a.du_amo+a.du_amc)).slice(0,50);
-  document.getElementById('anomTb').innerHTML=sorted.map(a=>`
-    <tr><td style="text-align:left;color:#64748b">${fdt(a.date)}</td>
-    <td style="text-align:left">${a.nom}<span class="${a.site==='SQ'?'bsq':'blaon'}">${a.site}</span></td>
-    <td style="text-align:left">${a.patient}</td><td>${fca(a.montant)}</td>
-    <td style="color:#d97706">${fca(a.du_amo)}</td><td style="color:#d97706">${fca(a.du_amc)}</td>
-    <td style="text-align:left"><span class="${a.statut==='Erreur'?'bad':'warn'}">${a.statut}</span></td></tr>`).join('');
-  if(list.length>50){
-    document.getElementById('anomTb').innerHTML+=`<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:8px">+ ${list.length-50} autres dossiers (triés par montant dû décroissant)</td></tr>`;
-  }
+  document.getElementById('rapproCal').innerHTML=html;
+}
+function jumpRapproFromCal(dstr){
+  const idx=RAPPRO_JOURS.indexOf(dstr);
+  if(idx<0) return;
+  rapproJIdx=idx; rapproMode='jour';
+  document.querySelectorAll('#rapproPeriodPills .pill').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('#rapproPeriodPills .pill')[3].classList.add('on');
+  document.getElementById('rapproJourNav').style.display='flex';
+  document.getElementById('selRapproMois').style.display='none';
+  renderRappro();
 }
 
 function renderRappro(){
+  let meds, label;
   if(rapproMode==='jour'){
     const date=RAPPRO_JOURS[rapproJIdx];
     document.getElementById('rapproDayLbl').textContent=fdt(date);
-    const d=RAPPRO.daily[date];
-    renderRapproKpi(d, fdts(date));
-    const meds=Object.values(RAPPRO.med_day[date]||{}).map(m=>({...m,
-      facture_total:round2(m.facture_amo+m.facture_amc), paye_total:round2(m.paye_ro+m.paye_rc),
-      du_total:round2(m.du_amo+m.du_amc)})).sort((a,b)=>b.facture_total-a.facture_total);
-    renderRapproMedTable(meds);
-    renderAnomalies(RAPPRO.anomalies.filter(a=>a.date===date), fdt(date));
+    document.getElementById('rapproJourPicker').value=date;
+    meds=Object.values(RAPPRO.med_day[date]||{});
+    label=fdts(date);
+    renderRapproCalendar(null);
+  } else if(rapproMode==='semaine'){
+    const wk=RAPPRO_SEMAINES[rapproWIdx];
+    document.getElementById('rapproWeekLbl').textContent=weekLabel(wk);
+    meds=Object.values(RAPPRO.med_weekly[wk]||{});
+    label=weekLabel(wk);
+    renderRapproCalendar(null);
   } else if(rapproMode==='mois'){
     const mo=selRapproMois.value;
-    const d=RAPPRO.monthly[mo];
-    renderRapproKpi(d, fmois(mo));
-    const meds=Object.values(RAPPRO.med_monthly[mo]||{}).sort((a,b)=>b.facture_total-a.facture_total);
-    renderRapproMedTable(meds);
-    renderAnomalies(RAPPRO.anomalies.filter(a=>a.date.startsWith(mo)), fmois(mo));
+    meds=Object.values(RAPPRO.med_monthly[mo]||{});
+    label=fmois(mo);
+    renderRapproCalendar(mo);
   } else {
-    const d=RAPPRO.cumul;
-    renderRapproKpi(d, 'cumulé');
-    const meds=Object.values(RAPPRO.med_cumul).sort((a,b)=>b.facture_total-a.facture_total);
-    renderRapproMedTable(meds);
-    renderAnomalies(RAPPRO.anomalies, 'cumulé');
+    meds=Object.values(RAPPRO.med_cumul);
+    label=`cumulé depuis ${fmois(RAPPRO.cumul.periode_debut)}`;
+    renderRapproCalendar(null);
   }
+  const filtered=meds.filter(m=>rapproSite==='all'||m.site===rapproSite);
+  renderRapproKpi(sumMeds(filtered), label);
 }
+
+// ── PART PATIENT (CB) ────────────────────────────────────────────────────
+let patientSite='all';
+const selPatientMois=document.getElementById('selPatientMois');
+Object.keys(PATIENT_CB).sort().reverse().forEach(m=>{
+  const o=document.createElement('option'); o.value=m; o.textContent=fmois(m); selPatientMois.appendChild(o);
+});
+function setPatientSite(s,el){
+  patientSite=s;
+  document.querySelectorAll('#patientSitePills .pill').forEach(p=>p.classList.remove('on')); el.classList.add('on');
+  renderPatient();
+}
+function renderPatient(){
+  const mo=selPatientMois.value;
+  const d=PATIENT_CB[mo];
+  const label=fmois(mo);
+  let banque, stellair, hasStellair, scopeOk;
+  if(patientSite==='SQ'){ banque=d.banque_sq; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=true; }
+  else if(patientSite==='Laon'){ banque=d.banque_laon; stellair=null; hasStellair=false; scopeOk=true; }
+  else { banque=d.banque_tous; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=false; }
+
+  let html=`<div class="kpi"><div class="kl">CB reçue en banque — ${label}${patientSite==='all'?' (SQ+Laon)':''}</div><div class="kv" style="font-size:30px">${fca(banque)}</div></div>`;
+  if(hasStellair && scopeOk){
+    const ecart=Math.round((banque-stellair)*100)/100;
+    const pct=stellair>0?Math.round(ecart/stellair*1000)/10:0;
+    html+=`<div class="kpi"><div class="kl">CB facturée Stellair</div><div class="kv" style="font-size:30px">${fca(stellair)}</div></div>`;
+    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${Math.abs(pct)>5?'#d97706':'#16a34a'};font-size:26px">${fca(ecart)}</div><div class="ks">${pct}% (frais bancaires inclus)</div></div>`;
+  } else if(hasStellair && !scopeOk){
+    html+=`<div class="kpi"><div class="kl">CB facturée Stellair (Saint-Quentin uniquement)</div><div class="kv" style="font-size:26px">${fca(stellair)}</div><div class="ks">Laon non inclus — pas comparable au total ci-dessus</div></div>`;
+    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:#94a3b8;font-size:18px">Non calculable</div><div class="ks">périmètres différents (banque = 2 sites, Stellair = SQ seul)</div></div>`;
+  } else {
+    html+=`<div class="kpi"><div class="kl">Comparaison Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Non disponible</div><div class="ks">export Stellair manquant pour ce site/mois</div></div>`;
+  }
+  document.getElementById('patientKpi').innerHTML=html;
+  renderPatientCumul();
+}
+
+function renderPatientCumul(){
+  let rows;
+  if(patientSite==='SQ') rows=[PATIENT_CUMUL.sq];
+  else if(patientSite==='Laon') rows=[PATIENT_CUMUL.laon];
+  else rows=[PATIENT_CUMUL.sq, PATIENT_CUMUL.laon];
+
+  const sumField=f=>rows.reduce((s,r)=>s+(r[f]||0),0);
+  const bCheque=sumField('banque_cheque'), bEspeces=sumField('banque_especes');
+  const bTotal=bCheque+bEspeces;
+
+  let sCheque=null, sEspeces=null, sTotal=null, hasStellair=false;
+  if(patientSite==='SQ'){
+    sCheque=PATIENT_CUMUL.sq.stellair_cheque; sEspeces=PATIENT_CUMUL.sq.stellair_especes;
+    sTotal=sCheque+sEspeces; hasStellair=true;
+  }
+
+  // Bloc du haut : totaux combinés
+  let top=`<div class="kpi"><div class="kl">Total reçu en banque (chèque+espèces)</div><div class="kv" style="font-size:28px">${fca(bTotal)}</div></div>`;
+  if(hasStellair){
+    const ecart=Math.round((bTotal-sTotal)*100)/100;
+    const pct=sTotal>0?Math.round(ecart/sTotal*1000)/10:0;
+    const col=Math.abs(pct)>15?'#dc2626':Math.abs(pct)>5?'#d97706':'#16a34a';
+    top+=`<div class="kpi"><div class="kl">Total facturé Stellair (chèque+espèces)</div><div class="kv" style="font-size:28px">${fca(sTotal)}</div></div>`;
+    top+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${col};font-size:24px">${fca(ecart)}</div><div class="ks">${pct}% — périodes non alignées, à titre indicatif</div></div>`;
+  } else if(patientSite==='Laon'){
+    top+=`<div class="kpi"><div class="kl">Total facturé Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Non disponible</div><div class="ks">pas d'export Stellair pour Laon</div></div>`;
+  } else {
+    top+=`<div class="kpi"><div class="kl">Total facturé Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Saint-Quentin uniquement</div><div class="ks">non comparable au total 2 sites ci-dessus</div></div>`;
+  }
+  document.getElementById('patientCumulKpi').innerHTML=top;
+
+  // Détail coloré en dessous
+  function detailRow(label, banque, stellair){
+    if(stellair===null||stellair===undefined){
+      return `<tr><td style="text-align:left">${label}</td><td>${fca(banque)}</td><td style="color:#94a3b8">—</td><td style="color:#94a3b8">—</td></tr>`;
+    }
+    const ec=Math.round((banque-stellair)*100)/100;
+    const pct=stellair>0?Math.round(ec/stellair*1000)/10:0;
+    const col=Math.abs(pct)>15?'#dc2626':Math.abs(pct)>5?'#d97706':'#16a34a';
+    return `<tr><td style="text-align:left">${label}</td><td>${fca(banque)}</td><td>${fca(stellair)}</td><td style="color:${col};font-weight:600">${fca(ec)} (${pct}%)</td></tr>`;
+  }
+  let rowsHtml='';
+  if(patientSite==='Laon'){
+    rowsHtml=detailRow('Chèques', bCheque, null)+detailRow('Espèces', bEspeces, null);
+  } else if(patientSite==='SQ'){
+    rowsHtml=detailRow('Chèques', bCheque, sCheque)+detailRow('Espèces', bEspeces, sEspeces);
+  } else {
+    rowsHtml=detailRow('Chèques (2 sites vs Stellair SQ)', bCheque, PATIENT_CUMUL.sq.stellair_cheque)
+            +detailRow('Espèces (2 sites vs Stellair SQ)', bEspeces, PATIENT_CUMUL.sq.stellair_especes);
+  }
+  document.getElementById('patientCumulDetail').innerHTML=`
+    <table class="tbl"><thead><tr><th style="text-align:left">Détail</th><th>Banque</th><th>Stellair</th><th>Écart</th></tr></thead>
+    <tbody>${rowsHtml}</tbody></table>`;
+}
+if(Object.keys(PATIENT_CB).length){ selPatientMois.value=Object.keys(PATIENT_CB).sort().pop(); }
 </script>
 </body>
 </html>

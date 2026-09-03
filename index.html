@@ -59,7 +59,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
 </head>
 <body>
 <div class="topbar">
-  <div><div class="tt">Dashboard COSQ</div><div class="ts">Winlogie · Sept. 2024 → 2 Sept. 2026</div></div>
+  <div><div class="tt">Dashboard COSQ</div><div class="ts">Winlogie · Sept. 2024 → 22 Juil. 2026</div></div>
   <div class="mg">
     <button class="mb on" onclick="setMode('jour',this)">Jour</button>
     <button class="mb" onclick="setMode('mois',this)">Mois</button>
@@ -605,8 +605,8 @@ function renderRapproKpi(d,label){
     <div class="kpi"><div class="kl">En cours de traitement</div><div class="kv" style="color:#2a78d6;font-size:26px">${fca(d.du_attente)}</div><div class="ks">transmis récemment, normal</div></div>` : '';
   document.getElementById('rapproKpi').innerHTML=`
     <div class="kpi"><div class="kl">Facturé Stellair (AMO+AMC) — ${label}</div><div class="kv" style="font-size:30px">${fca(d.facture_total)}</div></div>
-    <div class="kpi"><div class="kl">Payé confirmé Sicorfé</div><div class="kv" style="color:#16a34a;font-size:30px">${fca(d.paye_total)}</div><div class="ks">${d.taux_paye}% du facturé</div></div>
-    <div class="kpi"><div class="kl">Écart (anomalie/rejet)</div><div class="kv" style="color:${d.du_anomalie>1?'#dc2626':'#16a34a'};font-size:26px">${fca(d.du_anomalie)}</div><div class="ks">${d.du_anomalie>1?'à surveiller':'rien à signaler'}</div></div>
+    <div class="kpi"><div class="kl">Payé confirmé Sicorfé</div><div class="kv" style="color:#16a34a;font-size:30px">${fca(d.paye_total)}</div><div class="ks">${d.taux_paye}% du facturé de ${label} — inclut des règlements d'autres mois, ne pas comparer directement au facturé</div></div>
+    <div class="kpi"><div class="kl">Argent bloqué (Anomalie/Erreur)</div><div class="kv" style="color:${d.du_anomalie>1?'#dc2626':'#16a34a'};font-size:26px">${fca(d.du_anomalie)}</div><div class="ks">${d.du_anomalie>1?'chiffre indépendant du % ci-dessus — dossiers à régulariser un par un':'rien à signaler'}</div></div>
     ${enCoursHtml}`;
 }
 

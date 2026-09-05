@@ -197,6 +197,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
       <div style="font-size:11px;color:#94a3b8;margin-top:6px">Période couverte : février → 2 septembre 2026</div>
       <div class="kr" id="patientCumulKpi" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:10px"></div>
       <div id="patientCumulDetail" style="margin-top:14px"></div>
+      <div id="patientStockEvol" style="margin-top:14px"></div>
       <div style="font-size:11px;color:#94a3b8;margin-top:10px">Dépôts irrégüliers (par lots) : chèques remis par bordereau tous les 3-6 semaines, espèces déposées via automate — pratique démarrée le <b>11 juin 2026</b>. Un rapprochement mensuel n'aurait pas de sens ici ; le cumul reste le seul niveau pertinent.</div>
     </div>
   </div>
@@ -211,6 +212,14 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
 const MFR=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
 const JFR=['dim','lun','mar','mer','jeu','ven','sam'];
 const fca=v=>Math.round(v).toLocaleString('fr-FR')+' €';
+// Stock = facturé cumulé - reçu cumulé. Négatif = banque a reçu PLUS que facturé (normal si stable ou attendu : chèques hors Stellair).
+// Positif = facturé pas encore déposé en banque (normal en petit montant, à surveiller si ça grossit sans fin).
+const fstock=v=>{
+  const r=Math.round(v);
+  if(r<0) return `Banque +${fca(-r)}`;
+  if(r>0) return `Facturé +${fca(r)} (pas déposé)`;
+  return 'Équilibré (0€)';
+};
 const fcak=v=>v>=1000000?(v/1000000).toFixed(2)+'M€':(v/1000).toFixed(0)+'k€';
 const fdt=s=>{const d=new Date(s);return JFR[d.getDay()]+' '+d.getDate()+' '+MFR[d.getMonth()]+' '+d.getFullYear();};
 const fdts=s=>{const d=new Date(s);return JFR[d.getDay()]+' '+d.getDate()+' '+MFR[d.getMonth()];};
@@ -696,19 +705,16 @@ function renderPatient(){
   const label=fmois(mo);
   let banque, stellair, hasStellair, scopeOk;
   if(patientSite==='SQ'){ banque=d.banque_sq; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=true; }
-  else if(patientSite==='Laon'){ banque=d.banque_laon; stellair=null; hasStellair=false; scopeOk=true; }
-  else { banque=d.banque_tous; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=false; }
+  else if(patientSite==='Laon'){ banque=d.banque_laon; stellair=d.stellair_laon; hasStellair=stellair!==null; scopeOk=true; }
+  else { banque=d.banque_tous; stellair=(d.stellair_sq!==null&&d.stellair_laon!==null)?Math.round((d.stellair_sq+d.stellair_laon)*100)/100:null; hasStellair=stellair!==null; scopeOk=true; }
 
   let html=`<div class="kpi"><div class="kl">CB reçue en banque — ${label}${patientSite==='all'?' (SQ+Laon)':''}</div><div class="kv" style="font-size:30px">${fca(banque)}</div></div>`;
-  const partielNote=d.stellair_partiel?' — partiel (Boucenna manquant ce mois)':'';
+  const partielNote=d.stellair_partiel?' — partiel (Turki incomplet ce mois)':'';
   if(hasStellair && scopeOk){
     const ecart=Math.round((banque-stellair)*100)/100;
     const pct=stellair>0?Math.round(ecart/stellair*1000)/10:0;
     html+=`<div class="kpi"><div class="kl">CB facturée Stellair${partielNote}</div><div class="kv" style="font-size:${d.stellair_partiel?'22px':'30px'}">${fca(stellair)}</div></div>`;
     html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${d.stellair_partiel?'#94a3b8':Math.abs(pct)>5?'#d97706':'#16a34a'};font-size:26px">${d.stellair_partiel?'Non fiable':fca(ecart)}</div><div class="ks">${d.stellair_partiel?'Stellair incomplet ce mois':pct+'% (frais bancaires inclus)'}</div></div>`;
-  } else if(hasStellair && !scopeOk){
-    html+=`<div class="kpi"><div class="kl">CB facturée Stellair (Saint-Quentin uniquement)${partielNote}</div><div class="kv" style="font-size:26px">${fca(stellair)}</div><div class="ks">Laon non inclus — pas comparable au total ci-dessus</div></div>`;
-    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:#94a3b8;font-size:18px">Non calculable</div><div class="ks">périmètres différents (banque = 2 sites, Stellair = SQ seul)</div></div>`;
   } else {
     html+=`<div class="kpi"><div class="kl">Comparaison Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Non disponible</div><div class="ks">export Stellair manquant pour ce site/mois</div></div>`;
   }
@@ -726,49 +732,53 @@ function renderPatientCumul(){
   const bCheque=sumField('banque_cheque'), bEspeces=sumField('banque_especes');
   const bTotal=bCheque+bEspeces;
 
-  let sCheque=null, sEspeces=null, sTotal=null, hasStellair=false;
-  if(patientSite==='SQ'){
-    sCheque=PATIENT_CUMUL.sq.stellair_cheque; sEspeces=PATIENT_CUMUL.sq.stellair_especes;
-    sTotal=sCheque+sEspeces; hasStellair=true;
-  }
+  const sCheque=sumField('stellair_cheque'), sEspeces=sumField('stellair_especes');
+  const sTotal=sCheque+sEspeces;
 
-  // Bloc du haut : totaux combinés
+  // Stock en attente = facturé cumulé - reçu cumulé (positif = pas encore déposé, négatif = banque a reçu plus que facturé, ex: chèques d'actes chirurgicaux hors Stellair)
+  const stock=Math.round((sTotal-bTotal)*100)/100;
+  const stockCol=Math.abs(stock)<20000?'#16a34a':'#d97706';
   let top=`<div class="kpi"><div class="kl">Total reçu en banque (chèque+espèces)</div><div class="kv" style="font-size:28px">${fca(bTotal)}</div></div>`;
-  if(hasStellair){
-    const ecart=Math.round((bTotal-sTotal)*100)/100;
-    const pct=sTotal>0?Math.round(ecart/sTotal*1000)/10:0;
-    const col=Math.abs(pct)>15?'#dc2626':Math.abs(pct)>5?'#d97706':'#16a34a';
-    top+=`<div class="kpi"><div class="kl">Total facturé Stellair (chèque+espèces)</div><div class="kv" style="font-size:28px">${fca(sTotal)}</div></div>`;
-    top+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${col};font-size:24px">${fca(ecart)}</div><div class="ks">${pct}% — périodes non alignées, à titre indicatif</div></div>`;
-  } else if(patientSite==='Laon'){
-    top+=`<div class="kpi"><div class="kl">Total facturé Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Non disponible</div><div class="ks">pas d'export Stellair pour Laon</div></div>`;
-  } else {
-    top+=`<div class="kpi"><div class="kl">Total facturé Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Saint-Quentin uniquement</div><div class="ks">non comparable au total 2 sites ci-dessus</div></div>`;
-  }
+  top+=`<div class="kpi"><div class="kl">Total facturé Stellair (chèque+espèces)</div><div class="kv" style="font-size:28px">${fca(sTotal)}</div></div>`;
+  top+=`<div class="kpi"><div class="kl">Stock en attente de dépôt</div><div class="kv" style="color:${stockCol};font-size:22px">${fstock(stock)}</div><div class="ks">à suivre en tendance (doit rester stable) — pas un écart à corriger</div></div>`;
   document.getElementById('patientCumulKpi').innerHTML=top;
 
-  // Détail coloré en dessous
+  // Détail coloré en dessous (vue instantanée cumul)
   function detailRow(label, banque, stellair){
     if(stellair===null||stellair===undefined){
       return `<tr><td style="text-align:left">${label}</td><td>${fca(banque)}</td><td style="color:#94a3b8">—</td><td style="color:#94a3b8">—</td></tr>`;
     }
-    const ec=Math.round((banque-stellair)*100)/100;
-    const pct=stellair>0?Math.round(ec/stellair*1000)/10:0;
-    const col=Math.abs(pct)>15?'#dc2626':Math.abs(pct)>5?'#d97706':'#16a34a';
-    return `<tr><td style="text-align:left">${label}</td><td>${fca(banque)}</td><td>${fca(stellair)}</td><td style="color:${col};font-weight:600">${fca(ec)} (${pct}%)</td></tr>`;
+    const stk=Math.round((stellair-banque)*100)/100;
+    return `<tr><td style="text-align:left">${label}</td><td>${fca(banque)}</td><td>${fca(stellair)}</td><td style="font-weight:600">${fstock(stk)}</td></tr>`;
   }
-  let rowsHtml='';
+  let rowsHtml;
   if(patientSite==='Laon'){
-    rowsHtml=detailRow('Chèques', bCheque, null)+detailRow('Espèces', bEspeces, null);
+    rowsHtml=detailRow('Chèques', PATIENT_CUMUL.laon.banque_cheque, PATIENT_CUMUL.laon.stellair_cheque)
+            +detailRow('Espèces', PATIENT_CUMUL.laon.banque_especes, PATIENT_CUMUL.laon.stellair_especes);
   } else if(patientSite==='SQ'){
-    rowsHtml=detailRow('Chèques', bCheque, sCheque)+detailRow('Espèces', bEspeces, sEspeces);
+    rowsHtml=detailRow('Chèques', PATIENT_CUMUL.sq.banque_cheque, PATIENT_CUMUL.sq.stellair_cheque)
+            +detailRow('Espèces', PATIENT_CUMUL.sq.banque_especes, PATIENT_CUMUL.sq.stellair_especes);
   } else {
-    rowsHtml=detailRow('Chèques (2 sites vs Stellair SQ)', bCheque, PATIENT_CUMUL.sq.stellair_cheque)
-            +detailRow('Espèces (2 sites vs Stellair SQ)', bEspeces, PATIENT_CUMUL.sq.stellair_especes);
+    rowsHtml=detailRow('Chèques (SQ+Laon)', bCheque, sCheque)
+            +detailRow('Espèces (SQ+Laon)', bEspeces, sEspeces);
   }
   document.getElementById('patientCumulDetail').innerHTML=`
-    <table class="tbl"><thead><tr><th style="text-align:left">Détail</th><th>Banque</th><th>Stellair</th><th>Écart</th></tr></thead>
+    <table class="tbl"><thead><tr><th style="text-align:left">Détail</th><th>Banque (cumul)</th><th>Stellair (cumul)</th><th>Stock en attente</th></tr></thead>
     <tbody>${rowsHtml}</tbody></table>`;
+
+  // Évolution du stock mois par mois — a lire en tendance, pas en absolu
+  const stockSites = patientSite==='SQ' ? [['SQ',PATIENT_STOCK.sq]] : patientSite==='Laon' ? [['Laon',PATIENT_STOCK.laon]] : [['SQ',PATIENT_STOCK.sq],['Laon',PATIENT_STOCK.laon]];
+  const allMonths=[...new Set(stockSites.flatMap(([_,s])=>Object.keys(s)))].sort();
+  let evolRows='';
+  allMonths.forEach(m=>{
+    let chTotal=0, esTotal=0;
+    stockSites.forEach(([_,s])=>{ if(s[m]){ chTotal+=s[m].stock_cheque; esTotal+=s[m].stock_especes; } });
+    evolRows+=`<tr><td style="text-align:left">${fmois(m)}</td><td>${fstock(chTotal)}</td><td>${fstock(esTotal)}</td></tr>`;
+  });
+  document.getElementById('patientStockEvol').innerHTML=`
+    <div style="font-size:12px;color:#64748b;margin-bottom:6px">Évolution du stock en attente — "Banque +X" = la banque a reçu plus que Stellair n'a facturé (normal si stable, ex: chèques d'actes chirurgicaux hors Stellair). "Facturé +X" = facturé mais pas encore déposé en banque (normal en petit montant ; à surveiller si ça grossit sans fin).</div>
+    <table class="tbl"><thead><tr><th style="text-align:left">Mois</th><th>Stock chèques</th><th>Stock espèces</th></tr></thead>
+    <tbody>${evolRows}</tbody></table>`;
 }
 if(Object.keys(PATIENT_CB).length){ selPatientMois.value=Object.keys(PATIENT_CB).sort().pop(); }
 </script>

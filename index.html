@@ -59,7 +59,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
 </head>
 <body>
 <div class="topbar">
-  <div><div class="tt">Dashboard COSQ</div><div class="ts">Winlogie · Sept. 2024 → 23 Sept. 2026</div></div>
+  <div><div class="tt">Dashboard COSQ</div><div class="ts">Winlogie · Sept. 2024 → 22 Juil. 2026</div></div>
   <div class="mg">
     <button class="mb on" onclick="setMode('jour',this)">Jour</button>
     <button class="mb" onclick="setMode('mois',this)">Mois</button>
@@ -166,18 +166,13 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
       </div>
     </div>
 
-    <div style="font-size:11px;color:#94a3b8;margin-top:4px;padding:0 2px">Suivi Sicorfé : Boucenna Saint-Quentin, Turki, Boucenna Laon — période février → 22 septembre 2026. Le <b>Cumul</b> démarre officiellement en <b>mars 2026</b> (février = démarrage, consultable via Mois).</div>
+    <div style="font-size:11px;color:#94a3b8;margin-top:4px;padding:0 2px">Suivi Sicorfé : Boucenna Saint-Quentin, Turki, Boucenna Laon — période février → 8 juillet 2026. Le <b>Cumul</b> démarre officiellement en <b>mars 2026</b> (février = démarrage, consultable via Mois).</div>
   </div>
 
   <!-- ── PART PATIENT (CB) ────────────────────────────────────────────── -->
   <div id="patientView" style="display:none">
-    <div class="ctrls" style="flex-wrap:wrap;gap:10px">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span style="font-size:12px;color:#64748b">Du</span>
-        <select class="sel" id="selPatientDebut" onchange="renderPatientAll()"></select>
-        <span style="font-size:12px;color:#64748b">au</span>
-        <select class="sel" id="selPatientFin" onchange="renderPatientAll()"></select>
-      </div>
+    <div class="ctrls">
+      <select class="sel" id="selPatientMois" onchange="renderPatient()"></select>
       <div style="display:flex;gap:6px" id="patientSitePills">
         <button class="pill on" onclick="setPatientSite('all',this)">COSQ (Tous)</button>
         <button class="pill" onclick="setPatientSite('SQ',this)">Saint-Quentin</button>
@@ -186,20 +181,23 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
     </div>
 
     <div class="card" style="border:1px solid #e2e8f0">
-      <div class="ct" style="margin:0 0 8px">SUR LA PÉRIODE SÉLECTIONNÉE</div>
-      <div id="patientHeadline"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div class="ct" style="margin:0">CARTE BANCAIRE (CB)</div>
+        <span style="font-size:11px;font-weight:600;color:#166534;background:#dcfce7;padding:4px 10px;border-radius:20px">📅 Varie selon le mois sélectionné</span>
+      </div>
+      <div class="kr" id="patientKpi" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:10px"></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:10px">CB reçue en banque = remises "REM. CARTE OU EUROCHQ" (relevés BNP). Comparaison à Stellair disponible uniquement pour <b>Saint-Quentin</b> (Boucenna + Turki), de février à mai 2026. Le rapprochement se fait au <b>mois</b> (le jour à jour est trop bruité par les délais de remise bancaire).</div>
     </div>
 
     <div class="card" style="margin-top:16px;border:1px solid #e2e8f0;background:#fafbfc">
-      <div class="ct" style="margin:0 0 8px">DÉTAIL PAR MODE DE PAIEMENT</div>
-      <div id="patientDetailByMode"></div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:10px">CB : dépôt quasi immédiat, comparaison fiable même sur 1 seul mois. Chèque/Espèces : dépôts groupés et irréguliers — plus la période est longue, plus la comparaison est fiable ; sur 1 seul mois le "reste à déposer" peut sauter dans tous les sens sans que ce soit un problème.</div>
-    </div>
-
-    <div class="card" style="margin-top:16px;border:1px solid #e2e8f0">
-      <div class="ct" style="margin:0 0 8px">ÉVOLUTION MOIS PAR MOIS (Chèques / Espèces)</div>
-      <div id="patientStockEvol"></div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:10px">Stock qui reste stable d'un mois à l'autre = normal (décalage habituel de dépôt). Stock qui grossit sans arrêt = à investiguer. "Banque +X" durablement élevé côté chèques SQ = normal (chèques d'actes chirurgicaux qui ne passent pas par Stellair).</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div class="ct" style="margin:0">CHÈQUES + ESPÈCES</div>
+        <span style="font-size:11px;font-weight:600;color:#1a3a5c;background:#e8f0fb;padding:4px 10px;border-radius:20px">📌 Cumul complet — indépendant du mois choisi ci-dessus</span>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:6px">Période couverte : février → 8 juillet 2026</div>
+      <div class="kr" id="patientCumulKpi" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:10px"></div>
+      <div id="patientCumulDetail" style="margin-top:14px"></div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:10px">Dépôts irrégüliers (par lots) : chèques remis par bordereau tous les 3-6 semaines, espèces déposées via automate — pratique démarrée le <b>11 juin 2026</b>. Un rapprochement mensuel n'aurait pas de sens ici ; le cumul reste le seul niveau pertinent.</div>
     </div>
   </div>
 </div>
@@ -213,14 +211,6 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
 const MFR=['jan','fév','mar','avr','mai','juin','juil','août','sep','oct','nov','déc'];
 const JFR=['dim','lun','mar','mer','jeu','ven','sam'];
 const fca=v=>Math.round(v).toLocaleString('fr-FR')+' €';
-// Stock = facturé cumulé - reçu cumulé. Négatif = banque a reçu PLUS que facturé (normal si stable ou attendu : chèques hors Stellair).
-// Positif = facturé pas encore déposé en banque (normal en petit montant, à surveiller si ça grossit sans fin).
-const fstock=v=>{
-  const r=Math.round(v);
-  if(r<0) return `Banque +${fca(-r)}`;
-  if(r>0) return `Reste à déposer : ${fca(r)}`;
-  return 'Équilibré (0€)';
-};
 const fcak=v=>v>=1000000?(v/1000000).toFixed(2)+'M€':(v/1000).toFixed(0)+'k€';
 const fdt=s=>{const d=new Date(s);return JFR[d.getDay()]+' '+d.getDate()+' '+MFR[d.getMonth()]+' '+d.getFullYear();};
 const fdts=s=>{const d=new Date(s);return JFR[d.getDay()]+' '+d.getDate()+' '+MFR[d.getMonth()];};
@@ -261,7 +251,7 @@ function setMode(m,el){
   document.getElementById('patientView').style.display=isPatient?'block':'none';
   document.getElementById('ctrlBar').style.display=(isRappro||isPatient)?'none':'flex';
   if(isRappro){ renderRappro(); return; }
-  if(isPatient){ renderPatientAll(); return; }
+  if(isPatient){ renderPatient(); return; }
   document.getElementById('jourNav').style.display=m==='jour'?'flex':'none';
   document.getElementById('selMois').style.display=m==='mois'?'block':'none';
   document.getElementById('yrChecks').style.display=(m==='annee'||m==='cumul')?'flex':'none';
@@ -352,6 +342,22 @@ function renderMedTable(medList,cols){
 
 const MED_COLS=[{h:'Médecin',w:'15%'},{h:'CA',w:'9%'},{h:'Patients',w:'6%'},{h:'Réels',w:'6%'},{h:'Postop',w:'6%'},{h:'AG',w:'5%'},{h:'Abs',w:'5%'},{h:'Tx abs',w:'6%'},{h:'Panier',w:'8%'},{h:'AV',w:'5%'},{h:'SKIA',w:'6%'},{h:'CV',w:'5%'},{h:'BO',w:'5%'},{h:'CS',w:'5%'}];
 
+// Un même médecin (ex: Dr Koukos Laon) peut correspondre à plusieurs identifiants Winlogie (ex: 8 et 9).
+// On fusionne ici toutes les entrées par nom+site pour n'afficher qu'une seule ligne par médecin.
+function mergeMedsByName(medList){
+  const map={};
+  medList.forEach(m=>{
+    const key=m.nom+'|'+m.site;
+    if(!map[key]) map[key]={...m,ca:0,actes:0,payants:0,postop:0,ag:0,abs:0,nb_av:0,nb_skia:0,nb_cv:0,nb_bo:0,nb_cs:0,patients_reels:0,abs_raisons:{}};
+    map[key].ca+=m.ca||0; map[key].actes+=m.actes||0; map[key].payants+=m.payants||0;
+    map[key].postop+=m.postop||0; map[key].ag+=m.ag||0; map[key].abs+=m.abs||0;
+    map[key].nb_av+=m.nb_av||0; map[key].nb_skia+=m.nb_skia||0; map[key].nb_cv+=m.nb_cv||0; map[key].nb_bo+=m.nb_bo||0; map[key].nb_cs+=m.nb_cs||0;
+    map[key].patients_reels+=m.patients_reels!==undefined?m.patients_reels:((m.actes||0)-(m.abs||0));
+    Object.entries(m.abs_raisons||{}).forEach(([rai,n])=>{ map[key].abs_raisons[rai]=(map[key].abs_raisons[rai]||0)+n; });
+  });
+  return Object.values(map);
+}
+
 function renderTopAbsRaisons(medList,label){
   document.getElementById('topAbsTitle').textContent=`TOP MOTIFS D'ABSENCE — ${label}`;
   const totals={};
@@ -388,7 +394,7 @@ function renderJour(){
   document.getElementById('dayLbl').textContent=fdt(date);
   document.getElementById('jourPicker').value=date;
   renderKpi(d,prev,fdts(date)); renderBand(d);
-  const meds=Object.values(DAILY.med_day[date]||{}).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
+  const meds=mergeMedsByName(Object.values(DAILY.med_day[date]||{})).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
   if(cM)cM.destroy();
   cM=new Chart(document.getElementById('cMain'),{type:'bar',
     data:{labels:meds.map(m=>m.nom.replace('Dr ','').split(' ')[0]),
@@ -429,7 +435,7 @@ function renderMois(){
               y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>fcak(v)}}}}});
   renderDonut(d.ca_sq,d.ca_laon);
   document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>SQ (mois sélectionné)</span><span><b style="background:#1baf7a"></b>Laon (mois sélectionné)</span>';
-  const meds=Object.values(MONTHLY.med_monthly[mois]||{}).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
+  const meds=mergeMedsByName(Object.values(MONTHLY.med_monthly[mois]||{})).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
   renderMedTable(meds,MED_COLS);
   renderTopAbsRaisons(meds,fmois(mois));
 }
@@ -467,19 +473,12 @@ function renderAnnee(){
               y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:11},callback:v=>fcak(v)}}}}});
   renderDonut(d.ca_sq,d.ca_laon);
   document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>Saint-Quentin</span><span><b style="background:#1baf7a"></b>Laon</span>';
-  // Tableau par médecin sur les années sélectionnées
-  const medMap={};
+  // Tableau par médecin sur les années sélectionnées (fusion par nom+site : un médecin peut avoir plusieurs ID Winlogie)
+  const allMedEntries=[];
   years.forEach(y=>{
-    Object.entries(MONTHLY.med_yearly[y]||{}).forEach(([id,m])=>{
-      if(!medMap[id]) medMap[id]={...m,ca:0,actes:0,payants:0,postop:0,ag:0,abs:0,nb_av:0,nb_skia:0,nb_cv:0,nb_bo:0,nb_cs:0,patients_reels:0,abs_raisons:{}};
-      medMap[id].ca+=m.ca; medMap[id].actes+=m.actes; medMap[id].payants+=m.payants;
-      medMap[id].postop+=m.postop; medMap[id].ag+=m.ag; medMap[id].abs+=m.abs;
-      medMap[id].nb_av+=m.nb_av||0; medMap[id].nb_skia+=m.nb_skia||0; medMap[id].nb_cv+=m.nb_cv||0; medMap[id].nb_bo+=m.nb_bo||0; medMap[id].nb_cs+=m.nb_cs||0;
-      medMap[id].patients_reels+=m.patients_reels!==undefined?m.patients_reels:(m.actes-m.abs);
-      Object.entries(m.abs_raisons||{}).forEach(([rai,n])=>{ medMap[id].abs_raisons[rai]=(medMap[id].abs_raisons[rai]||0)+n; });
-    });
+    Object.values(MONTHLY.med_yearly[y]||{}).forEach(m=>allMedEntries.push(m));
   });
-  const meds=Object.values(medMap).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
+  const meds=mergeMedsByName(allMedEntries).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
   renderMedTable(meds,MED_COLS);
   renderTopAbsRaisons(meds,label+siteLbl);
 }
@@ -615,8 +614,8 @@ function renderRapproKpi(d,label){
     <div class="kpi"><div class="kl">En cours de traitement</div><div class="kv" style="color:#2a78d6;font-size:26px">${fca(d.du_attente)}</div><div class="ks">transmis récemment, normal</div></div>` : '';
   document.getElementById('rapproKpi').innerHTML=`
     <div class="kpi"><div class="kl">Facturé Stellair (AMO+AMC) — ${label}</div><div class="kv" style="font-size:30px">${fca(d.facture_total)}</div></div>
-    <div class="kpi"><div class="kl">Payé confirmé Sicorfé</div><div class="kv" style="color:#16a34a;font-size:30px">${fca(d.paye_total)}</div><div class="ks">${d.taux_paye}% du facturé de ${label} — inclut des règlements d'autres mois, ne pas comparer directement au facturé</div></div>
-    <div class="kpi"><div class="kl">Argent bloqué (Anomalie/Erreur)</div><div class="kv" style="color:${d.du_anomalie>1?'#dc2626':'#16a34a'};font-size:26px">${fca(d.du_anomalie)}</div><div class="ks">${d.du_anomalie>1?'chiffre indépendant du % ci-dessus — dossiers à régulariser un par un':'rien à signaler'}</div></div>
+    <div class="kpi"><div class="kl">Payé confirmé Sicorfé</div><div class="kv" style="color:#16a34a;font-size:30px">${fca(d.paye_total)}</div><div class="ks">${d.taux_paye}% du facturé</div></div>
+    <div class="kpi"><div class="kl">Écart (anomalie/rejet)</div><div class="kv" style="color:${d.du_anomalie>1?'#dc2626':'#16a34a'};font-size:26px">${fca(d.du_anomalie)}</div><div class="ks">${d.du_anomalie>1?'à surveiller':'rien à signaler'}</div></div>
     ${enCoursHtml}`;
 }
 
@@ -689,97 +688,98 @@ function renderRappro(){
   renderRapproKpi(sumMeds(filtered), label);
 }
 
-// ── PART PATIENT (CB + Chèques + Espèces, période libre) ─────────────────
+// ── PART PATIENT (CB) ────────────────────────────────────────────────────
 let patientSite='all';
-const selPatientDebut=document.getElementById('selPatientDebut');
-const selPatientFin=document.getElementById('selPatientFin');
-const patientMonths=Object.keys(PATIENT_MONTHLY).sort();
-patientMonths.forEach(m=>{
-  const o1=document.createElement('option'); o1.value=m; o1.textContent=fmois(m); selPatientDebut.appendChild(o1);
-  const o2=document.createElement('option'); o2.value=m; o2.textContent=fmois(m); selPatientFin.appendChild(o2);
+const selPatientMois=document.getElementById('selPatientMois');
+Object.keys(PATIENT_CB).sort().reverse().forEach(m=>{
+  const o=document.createElement('option'); o.value=m; o.textContent=fmois(m); selPatientMois.appendChild(o);
 });
-if(patientMonths.length){ selPatientDebut.value=patientMonths[0]; selPatientFin.value=patientMonths[patientMonths.length-1]; }
-
 function setPatientSite(s,el){
   patientSite=s;
   document.querySelectorAll('#patientSitePills .pill').forEach(p=>p.classList.remove('on')); el.classList.add('on');
-  renderPatientAll();
+  renderPatient();
+}
+function renderPatient(){
+  const mo=selPatientMois.value;
+  const d=PATIENT_CB[mo];
+  const label=fmois(mo);
+  let banque, stellair, hasStellair, scopeOk;
+  if(patientSite==='SQ'){ banque=d.banque_sq; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=true; }
+  else if(patientSite==='Laon'){ banque=d.banque_laon; stellair=null; hasStellair=false; scopeOk=true; }
+  else { banque=d.banque_tous; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=false; }
+
+  let html=`<div class="kpi"><div class="kl">CB reçue en banque — ${label}${patientSite==='all'?' (SQ+Laon)':''}</div><div class="kv" style="font-size:30px">${fca(banque)}</div></div>`;
+  const partielNote=d.stellair_partiel?' — partiel (Boucenna manquant ce mois)':'';
+  if(hasStellair && scopeOk){
+    const ecart=Math.round((banque-stellair)*100)/100;
+    const pct=stellair>0?Math.round(ecart/stellair*1000)/10:0;
+    html+=`<div class="kpi"><div class="kl">CB facturée Stellair${partielNote}</div><div class="kv" style="font-size:${d.stellair_partiel?'22px':'30px'}">${fca(stellair)}</div></div>`;
+    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${d.stellair_partiel?'#94a3b8':Math.abs(pct)>5?'#d97706':'#16a34a'};font-size:26px">${d.stellair_partiel?'Non fiable':fca(ecart)}</div><div class="ks">${d.stellair_partiel?'Stellair incomplet ce mois':pct+'% (frais bancaires inclus)'}</div></div>`;
+  } else if(hasStellair && !scopeOk){
+    html+=`<div class="kpi"><div class="kl">CB facturée Stellair (Saint-Quentin uniquement)${partielNote}</div><div class="kv" style="font-size:26px">${fca(stellair)}</div><div class="ks">Laon non inclus — pas comparable au total ci-dessus</div></div>`;
+    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:#94a3b8;font-size:18px">Non calculable</div><div class="ks">périmètres différents (banque = 2 sites, Stellair = SQ seul)</div></div>`;
+  } else {
+    html+=`<div class="kpi"><div class="kl">Comparaison Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Non disponible</div><div class="ks">export Stellair manquant pour ce site/mois</div></div>`;
+  }
+  document.getElementById('patientKpi').innerHTML=html;
+  renderPatientCumul();
 }
 
-function patientSitesFor(){
-  return patientSite==='all' ? ['SQ','Laon'] : [patientSite];
-}
+function renderPatientCumul(){
+  let rows;
+  if(patientSite==='SQ') rows=[PATIENT_CUMUL.sq];
+  else if(patientSite==='Laon') rows=[PATIENT_CUMUL.laon];
+  else rows=[PATIENT_CUMUL.sq, PATIENT_CUMUL.laon];
 
-function renderPatientAll(){
-  let debut=selPatientDebut.value, fin=selPatientFin.value;
-  if(debut>fin){ [debut,fin]=[fin,debut]; selPatientDebut.value=debut; selPatientFin.value=fin; }
-  const monthsInRange=patientMonths.filter(m=>m>=debut&&m<=fin);
-  const sites=patientSitesFor();
+  const sumField=f=>rows.reduce((s,r)=>s+(r[f]||0),0);
+  const bCheque=sumField('banque_cheque'), bEspeces=sumField('banque_especes');
+  const bTotal=bCheque+bEspeces;
 
-  const modes=['cb','cheque','especes'];
-  const totals={};
-  modes.forEach(mode=>{ totals[mode]={facture:0,banque:0,hasFacture:true}; });
-  monthsInRange.forEach(m=>{
-    sites.forEach(site=>{
-      const e=PATIENT_MONTHLY[m] && PATIENT_MONTHLY[m][site];
-      if(!e) return;
-      modes.forEach(mode=>{
-        const v=e[mode];
-        totals[mode].banque+=v.banque||0;
-        if(v.facture===null||v.facture===undefined){ totals[mode].hasFacture=false; }
-        else { totals[mode].facture+=v.facture; }
-      });
-    });
-  });
+  let sCheque=null, sEspeces=null, sTotal=null, hasStellair=false;
+  if(patientSite==='SQ'){
+    sCheque=PATIENT_CUMUL.sq.stellair_cheque; sEspeces=PATIENT_CUMUL.sq.stellair_especes;
+    sTotal=sCheque+sEspeces; hasStellair=true;
+  }
 
-  const factureTotal=modes.reduce((s,mode)=>s+(totals[mode].hasFacture?totals[mode].facture:0),0);
-  const banqueTotal=modes.reduce((s,mode)=>s+totals[mode].banque,0);
-  const pct=factureTotal>0?Math.round(banqueTotal/factureTotal*1000)/10:0;
-  const reste=Math.round((factureTotal-banqueTotal)*100)/100;
+  // Bloc du haut : totaux combinés
+  let top=`<div class="kpi"><div class="kl">Total reçu en banque (chèque+espèces)</div><div class="kv" style="font-size:28px">${fca(bTotal)}</div></div>`;
+  if(hasStellair){
+    const ecart=Math.round((bTotal-sTotal)*100)/100;
+    const pct=sTotal>0?Math.round(ecart/sTotal*1000)/10:0;
+    const col=Math.abs(pct)>15?'#dc2626':Math.abs(pct)>5?'#d97706':'#16a34a';
+    top+=`<div class="kpi"><div class="kl">Total facturé Stellair (chèque+espèces)</div><div class="kv" style="font-size:28px">${fca(sTotal)}</div></div>`;
+    top+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${col};font-size:24px">${fca(ecart)}</div><div class="ks">${pct}% — périodes non alignées, à titre indicatif</div></div>`;
+  } else if(patientSite==='Laon'){
+    top+=`<div class="kpi"><div class="kl">Total facturé Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Non disponible</div><div class="ks">pas d'export Stellair pour Laon</div></div>`;
+  } else {
+    top+=`<div class="kpi"><div class="kl">Total facturé Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Saint-Quentin uniquement</div><div class="ks">non comparable au total 2 sites ci-dessus</div></div>`;
+  }
+  document.getElementById('patientCumulKpi').innerHTML=top;
 
-  const label=`${fmois(debut)} → ${fmois(fin)}`;
-  const pctCol=pct>=95?'#16a34a':pct>=85?'#d97706':'#dc2626';
-  let headline=`<div style="font-size:13px;color:#64748b;margin-bottom:10px">${label}${patientSite!=='all'?' — '+(patientSite==='SQ'?'Saint-Quentin':'Laon'):' — Saint-Quentin + Laon'}</div>`;
-  headline+=`<div class="kr" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">`;
-  headline+=`<div class="kpi"><div class="kl">Facturé (CB+Chèque+Espèces)</div><div class="kv" style="font-size:28px">${fca(factureTotal)}</div></div>`;
-  headline+=`<div class="kpi"><div class="kl">Arrivé en banque</div><div class="kv" style="color:${pctCol};font-size:28px">${fca(banqueTotal)}</div><div class="ks" style="font-weight:600;color:${pctCol}">${pct}% du facturé</div></div>`;
-  headline+=`<div class="kpi"><div class="kl">${reste>=0?'Reste à arriver':'Arrivé en plus (hors Stellair)'}</div><div class="kv" style="color:${pctCol};font-size:24px">${fca(Math.abs(reste))}</div><div class="ks">chèques/espèces : normal si stable, voir tableau ci-dessous</div></div>`;
-  headline+=`</div>`;
-  document.getElementById('patientHeadline').innerHTML=headline;
-
-  const modeLabels={cb:'Carte Bancaire',cheque:'Chèque',especes:'Espèces'};
-  let rowsHtml='';
-  modes.forEach(mode=>{
-    const t=totals[mode];
-    const f=t.hasFacture?t.facture:null;
-    const b=t.banque;
-    if(f===null){
-      rowsHtml+=`<tr><td style="text-align:left">${modeLabels[mode]}</td><td>${fca(b)}</td><td style="color:#94a3b8">—</td><td style="color:#94a3b8">export Stellair manquant</td></tr>`;
-    } else {
-      const pctMode=f>0?Math.round(b/f*1000)/10:0;
-      const col=mode==='cb'?(Math.abs(pctMode-100)<=10?'#16a34a':'#d97706'):'#1a3a5c';
-      rowsHtml+=`<tr><td style="text-align:left">${modeLabels[mode]}</td><td>${fca(f)}</td><td>${fca(b)}</td><td style="font-weight:600;color:${col}">${pctMode}%</td></tr>`;
+  // Détail coloré en dessous
+  function detailRow(label, banque, stellair){
+    if(stellair===null||stellair===undefined){
+      return `<tr><td style="text-align:left">${label}</td><td>${fca(banque)}</td><td style="color:#94a3b8">—</td><td style="color:#94a3b8">—</td></tr>`;
     }
-  });
-  document.getElementById('patientDetailByMode').innerHTML=`
-    <table class="tbl"><thead><tr><th style="text-align:left">Mode</th><th>Facturé Stellair</th><th>Arrivé en banque</th><th>% arrivé</th></tr></thead>
+    const ec=Math.round((banque-stellair)*100)/100;
+    const pct=stellair>0?Math.round(ec/stellair*1000)/10:0;
+    const col=Math.abs(pct)>15?'#dc2626':Math.abs(pct)>5?'#d97706':'#16a34a';
+    return `<tr><td style="text-align:left">${label}</td><td>${fca(banque)}</td><td>${fca(stellair)}</td><td style="color:${col};font-weight:600">${fca(ec)} (${pct}%)</td></tr>`;
+  }
+  let rowsHtml='';
+  if(patientSite==='Laon'){
+    rowsHtml=detailRow('Chèques', bCheque, null)+detailRow('Espèces', bEspeces, null);
+  } else if(patientSite==='SQ'){
+    rowsHtml=detailRow('Chèques', bCheque, sCheque)+detailRow('Espèces', bEspeces, sEspeces);
+  } else {
+    rowsHtml=detailRow('Chèques (2 sites vs Stellair SQ)', bCheque, PATIENT_CUMUL.sq.stellair_cheque)
+            +detailRow('Espèces (2 sites vs Stellair SQ)', bEspeces, PATIENT_CUMUL.sq.stellair_especes);
+  }
+  document.getElementById('patientCumulDetail').innerHTML=`
+    <table class="tbl"><thead><tr><th style="text-align:left">Détail</th><th>Banque</th><th>Stellair</th><th>Écart</th></tr></thead>
     <tbody>${rowsHtml}</tbody></table>`;
-
-  // Évolution du stock mois par mois (cumul depuis le 1er mois dispo, indépendant de la période choisie ci-dessus)
-  const stockSites = sites.map(s=>[s, s==='SQ'?PATIENT_STOCK.sq:PATIENT_STOCK.laon]);
-  const allMonths=[...new Set(stockSites.flatMap(([_,s])=>Object.keys(s)))].sort();
-  let evolRows='';
-  allMonths.forEach(m=>{
-    let chTotal=0, esTotal=0;
-    stockSites.forEach(([_,s])=>{ if(s[m]){ chTotal+=s[m].stock_cheque; esTotal+=s[m].stock_especes; } });
-    const hl=(m>=debut&&m<=fin)?'background:#f0f7ff':'';
-    evolRows+=`<tr style="${hl}"><td style="text-align:left">${fmois(m)}</td><td>${fstock(chTotal)}</td><td>${fstock(esTotal)}</td></tr>`;
-  });
-  document.getElementById('patientStockEvol').innerHTML=`
-    <table class="tbl"><thead><tr><th style="text-align:left">Mois</th><th>Stock chèques (cumul depuis janvier)</th><th>Stock espèces (cumul depuis janvier)</th></tr></thead>
-    <tbody>${evolRows}</tbody></table>`;
 }
-renderPatientAll();
+if(Object.keys(PATIENT_CB).length){ selPatientMois.value=Object.keys(PATIENT_CB).sort().pop(); }
 </script>
 </body>
 </html>

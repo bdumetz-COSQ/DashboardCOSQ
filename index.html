@@ -54,12 +54,13 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
 .tbl tr:hover:not(tfoot tr) td{background:#f8fafc}
 .bsq{font-size:10px;padding:1px 5px;border-radius:10px;font-weight:500;background:#dbeafe;color:#1e40af;margin-left:4px}
 .blaon{font-size:10px;padding:1px 5px;border-radius:10px;font-weight:500;background:#dcfce7;color:#166534;margin-left:4px}
+.bverdun{font-size:10px;padding:1px 5px;border-radius:10px;font-weight:500;background:#fef3c7;color:#92400e;margin-left:4px}
 .ok{color:#16a34a;font-weight:500}.warn{color:#d97706;font-weight:500}.bad{color:#dc2626;font-weight:500}
 </style>
 </head>
 <body>
 <div class="topbar">
-  <div><div class="tt">Dashboard COSQ</div><div class="ts">Winlogie · Sept. 2024 → 22 Juil. 2026</div></div>
+  <div><div class="tt">Dashboard COSQ</div><div class="ts" id="headerRange">Winlogie</div></div>
   <div class="mg">
     <button class="mb on" onclick="setMode('jour',this)">Jour</button>
     <button class="mb" onclick="setMode('mois',this)">Mois</button>
@@ -92,6 +93,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
       <button class="pill on" onclick="setSite('all',this)">Tous</button>
       <button class="pill" onclick="setSite('SQ',this)">Saint-Quentin</button>
       <button class="pill" onclick="setSite('Laon',this)">Laon</button>
+      <button class="pill" onclick="setSite('Verdun',this)">Verdun</button>
     </div>
   </div>
 
@@ -177,6 +179,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
         <button class="pill on" onclick="setPatientSite('all',this)">COSQ (Tous)</button>
         <button class="pill" onclick="setPatientSite('SQ',this)">Saint-Quentin</button>
         <button class="pill" onclick="setPatientSite('Laon',this)">Laon</button>
+        <button class="pill" onclick="setPatientSite('Verdun',this)">Verdun</button>
       </div>
     </div>
 
@@ -230,6 +233,10 @@ let mode='jour', site='all', jIdx=0, cM=null, cS=null;
 const JOURS=Object.keys(DAILY.daily).sort();
 jIdx=JOURS.length-1;
 
+// En-tête : période couverte, calculée automatiquement depuis les données (jamais à corriger à la main)
+const fdtShort=s=>{const d=new Date(s);const mo=MFR[d.getMonth()];return d.getDate()+' '+mo.charAt(0).toUpperCase()+mo.slice(1)+'. '+d.getFullYear();};
+document.getElementById('headerRange').textContent='Winlogie · '+fdtShort(JOURS[0])+' → '+fdtShort(JOURS[JOURS.length-1]);
+
 // Init sélecteur mois
 const selMois=document.getElementById('selMois');
 Object.keys(MONTHLY.monthly).sort().reverse().forEach(m=>{
@@ -269,12 +276,13 @@ document.getElementById('jourPicker').min=JOURS[0];
 document.getElementById('jourPicker').max=JOURS[JOURS.length-1];
 
 // ── Helpers ──────────────────────────────────────────────────────────────
-function getCA(d){return site==='all'?d.ca:site==='SQ'?d.ca_sq:d.ca_laon;}
-function getAcq(d){return site==='all'?d.actes:site==='SQ'?d.actes_sq:d.actes_laon;}
-function getPay(d){return site==='all'?d.payants:site==='SQ'?d.payants_sq:d.payants_laon;}
-function getPostop(d){return site==='all'?d.postop:site==='SQ'?d.postop_sq:d.postop_laon;}
-function getAG(d){return site==='all'?d.ag:site==='SQ'?d.ag_sq:d.ag_laon;}
-function getAbsN(d){return site==='all'?d.abs:site==='SQ'?d.abs_sq:d.abs_laon;}
+function bySite(d,field){return site==='all'?d[field]:(d[field+'_'+site.toLowerCase()]||0);}
+function getCA(d){return bySite(d,'ca');}
+function getAcq(d){return bySite(d,'actes');}
+function getPay(d){return bySite(d,'payants');}
+function getPostop(d){return bySite(d,'postop');}
+function getAG(d){return bySite(d,'ag');}
+function getAbsN(d){return bySite(d,'abs');}
 
 function renderKpi(d,prev,label){
   const ca=getCA(d), caPrev=prev?getCA(prev):0;
@@ -303,11 +311,16 @@ function renderBand(d){
     <div class="bi"><div class="bd" style="background:#dc2626"></div><span>Absences</span><span class="bv">${absN}</span><span class="bp"> (${txAbs}%)</span></div>`;
 }
 
-function renderDonut(ca_sq,ca_laon){
+function renderDonut(ca_sq,ca_laon,ca_verdun){
   if(cS)cS.destroy();
-  const tot=ca_sq+ca_laon; const pSQ=tot>0?Math.round(ca_sq/tot*100):0;
+  ca_verdun = ca_verdun||0;
+  const tot=ca_sq+ca_laon+ca_verdun;
+  const labels=['SQ','Laon'], data=[Math.round(ca_sq),Math.round(ca_laon)], colors=['#2a78d6','#1baf7a'];
+  if(ca_verdun>0){ labels.push('Verdun'); data.push(Math.round(ca_verdun)); colors.push('#f59e0b'); }
+  const pcts=data.map(v=>tot>0?Math.round(v/tot*100):0);
+  const labelsPct=labels.map((l,i)=>`${l} ${pcts[i]}%`);
   cS=new Chart(document.getElementById('cSite'),{type:'doughnut',
-    data:{labels:[`SQ ${pSQ}%`,`Laon ${100-pSQ}%`],datasets:[{data:[Math.round(ca_sq),Math.round(ca_laon)],backgroundColor:['#2a78d6','#1baf7a'],borderWidth:3,borderColor:'#fff'}]},
+    data:{labels:labelsPct,datasets:[{data,backgroundColor:colors,borderWidth:3,borderColor:'#fff'}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
       plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:10,boxWidth:10,boxHeight:10}},
                tooltip:{callbacks:{label:c=>c.label+' : '+fca(c.parsed)}}}}});
@@ -322,7 +335,7 @@ function renderMedTable(medList,cols){
     totAV+=m.nb_av||0;totSKIA+=m.nb_skia||0;totCV+=m.nb_cv||0;totBO+=m.nb_bo||0;totCS+=m.nb_cs||0;
     const tx=m.actes>0?Math.round(m.abs/m.actes*1000)/10:0;
     const pan=m.payants>0?(m.ca/m.payants).toFixed(2)+' €':'—';
-    return`<tr><td>${m.nom}<span class="${m.site==='SQ'?'bsq':'blaon'}">${m.site}</span></td>
+    return`<tr><td>${m.nom}<span class="${m.site==='SQ'?'bsq':m.site==='Laon'?'blaon':'bverdun'}">${m.site}</span></td>
       <td>${fca(m.ca)}</td><td>${m.actes}</td>
       <td style="font-weight:600;color:#16a34a">${reel}</td>
       <td style="color:#d97706">${m.postop}</td><td style="color:#888">${m.ag}</td>
@@ -398,15 +411,15 @@ function renderJour(){
   if(cM)cM.destroy();
   cM=new Chart(document.getElementById('cMain'),{type:'bar',
     data:{labels:meds.map(m=>m.nom.replace('Dr ','').split(' ')[0]),
-          datasets:[{data:meds.map(m=>Math.round(m.ca)),backgroundColor:meds.map(m=>m.site==='SQ'?'#2a78d6':'#1baf7a'),borderRadius:4,borderSkipped:false}]},
+          datasets:[{data:meds.map(m=>Math.round(m.ca)),backgroundColor:meds.map(m=>m.site==='SQ'?'#2a78d6':m.site==='Laon'?'#1baf7a':'#f59e0b'),borderRadius:4,borderSkipped:false}]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fca(c.parsed.y)}}},
       scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10},maxRotation:35}},
               y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>fcak(v)}}}}});
-  renderDonut(d.ca_sq,d.ca_laon);
+  renderDonut(d.ca_sq,d.ca_laon,d.ca_verdun);
   renderMedTable(meds,MED_COLS);
   renderTopAbsRaisons(meds,fdts(date));
-  document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>Saint-Quentin</span><span><b style="background:#1baf7a"></b>Laon</span>';
+  document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>Saint-Quentin</span><span><b style="background:#1baf7a"></b>Laon</span><span><b style="background:#f59e0b"></b>Verdun</span>';
 }
 
 // ── MOIS ────────────────────────────────────────────────────────────────
@@ -428,12 +441,13 @@ function renderMois(){
     data:{labels:last6.map(fmois),datasets:[
       {label:'SQ',data:last6.map(m=>Math.round(MONTHLY.monthly[m].ca_sq)),backgroundColor:last6.map(m=>m===mois?'#2a78d6':'rgba(42,120,214,0.3)'),borderRadius:4,borderSkipped:false},
       {label:'Laon',data:last6.map(m=>Math.round(MONTHLY.monthly[m].ca_laon)),backgroundColor:last6.map(m=>m===mois?'#1baf7a':'rgba(27,175,122,0.3)'),borderRadius:4,borderSkipped:false},
+      {label:'Verdun',data:last6.map(m=>Math.round(MONTHLY.monthly[m].ca_verdun||0)),backgroundColor:last6.map(m=>m===mois?'#f59e0b':'rgba(245,158,11,0.3)'),borderRadius:4,borderSkipped:false},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fca(c.parsed.y)}}},
       scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10}}},
               y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>fcak(v)}}}}});
-  renderDonut(d.ca_sq,d.ca_laon);
+  renderDonut(d.ca_sq,d.ca_laon,d.ca_verdun);
   document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>SQ (mois sélectionné)</span><span><b style="background:#1baf7a"></b>Laon (mois sélectionné)</span>';
   const meds=mergeMedsByName(Object.values(MONTHLY.med_monthly[mois]||{})).filter(m=>site==='all'||m.site===site).sort((a,b)=>b.ca-a.ca);
   renderMedTable(meds,MED_COLS);
@@ -447,9 +461,9 @@ function renderAnnee(){
   // Agréger les années sélectionnées
   const agg=(field)=>years.reduce((s,y)=>s+(MONTHLY.yearly[y]?.[field]||0),0);
   const d={ca:agg('ca'),actes:agg('actes'),payants:agg('payants'),postop:agg('postop'),ag:agg('ag'),abs:agg('abs'),
-    ca_sq:agg('ca_sq'),ca_laon:agg('ca_laon'),actes_sq:agg('actes_sq'),actes_laon:agg('actes_laon'),
-    payants_sq:agg('payants_sq'),payants_laon:agg('payants_laon'),postop_sq:agg('postop_sq'),postop_laon:agg('postop_laon'),
-    ag_sq:agg('ag_sq'),ag_laon:agg('ag_laon'),abs_sq:agg('abs_sq'),abs_laon:agg('abs_laon'),tx_abs:0};
+    ca_sq:agg('ca_sq'),ca_laon:agg('ca_laon'),ca_verdun:agg('ca_verdun'),actes_sq:agg('actes_sq'),actes_laon:agg('actes_laon'),actes_verdun:agg('actes_verdun'),
+    payants_sq:agg('payants_sq'),payants_laon:agg('payants_laon'),payants_verdun:agg('payants_verdun'),postop_sq:agg('postop_sq'),postop_laon:agg('postop_laon'),postop_verdun:agg('postop_verdun'),
+    ag_sq:agg('ag_sq'),ag_laon:agg('ag_laon'),ag_verdun:agg('ag_verdun'),abs_sq:agg('abs_sq'),abs_laon:agg('abs_laon'),abs_verdun:agg('abs_verdun'),tx_abs:0};
   d.tx_abs=d.actes>0?Math.round(d.abs/d.actes*1000)/10:0;
   const allYears=Object.keys(MONTHLY.yearly).sort();
   const prevYear=years.length===1?allYears[allYears.indexOf(years[0])-1]:null;
@@ -464,15 +478,16 @@ function renderAnnee(){
   const allY=Object.keys(MONTHLY.yearly).sort();
   cM=new Chart(document.getElementById('cMain'),{type:'bar',
     data:{labels:allY,datasets:[
-      {label:'SQ',data:allY.map(y=>Math.round(MONTHLY.yearly[y].ca_sq)),backgroundColor:allY.map(y=>years.includes(y)?'#2a78d6':'rgba(42,120,214,0.2)'),borderRadius:4,borderSkipped:false,hidden:site==='Laon'},
-      {label:'Laon',data:allY.map(y=>Math.round(MONTHLY.yearly[y].ca_laon)),backgroundColor:allY.map(y=>years.includes(y)?'#1baf7a':'rgba(27,175,122,0.2)'),borderRadius:4,borderSkipped:false,hidden:site==='SQ'},
+      {label:'SQ',data:allY.map(y=>Math.round(MONTHLY.yearly[y].ca_sq)),backgroundColor:allY.map(y=>years.includes(y)?'#2a78d6':'rgba(42,120,214,0.2)'),borderRadius:4,borderSkipped:false,hidden:site==='Laon'||site==='Verdun'},
+      {label:'Laon',data:allY.map(y=>Math.round(MONTHLY.yearly[y].ca_laon)),backgroundColor:allY.map(y=>years.includes(y)?'#1baf7a':'rgba(27,175,122,0.2)'),borderRadius:4,borderSkipped:false,hidden:site==='SQ'||site==='Verdun'},
+      {label:'Verdun',data:allY.map(y=>Math.round(MONTHLY.yearly[y].ca_verdun||0)),backgroundColor:allY.map(y=>years.includes(y)?'#f59e0b':'rgba(245,158,11,0.2)'),borderRadius:4,borderSkipped:false,hidden:site==='SQ'||site==='Laon'},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:'top',labels:{font:{size:11},boxWidth:10,boxHeight:10}},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fca(c.parsed.y)}}},
       scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:11}}},
               y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:11},callback:v=>fcak(v)}}}}});
-  renderDonut(d.ca_sq,d.ca_laon);
-  document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>Saint-Quentin</span><span><b style="background:#1baf7a"></b>Laon</span>';
+  renderDonut(d.ca_sq,d.ca_laon,d.ca_verdun);
+  document.getElementById('legMain').innerHTML='<span><b style="background:#2a78d6"></b>Saint-Quentin</span><span><b style="background:#1baf7a"></b>Laon</span><span><b style="background:#f59e0b"></b>Verdun</span>';
   // Tableau par médecin sur les années sélectionnées (fusion par nom+site : un médecin peut avoir plusieurs ID Winlogie)
   const allMedEntries=[];
   years.forEach(y=>{
@@ -488,16 +503,16 @@ function renderCumul(){
   const years=getSelYears().sort();
   if(!years.length) return;
   const allMois=Object.keys(MONTHLY.monthly).sort().filter(m=>years.includes(m.split('-')[0]));
-  let cumTot=0,cumSQ=0,cumLaon=0,cumAc=0;
+  let cumTot=0,cumSQ=0,cumLaon=0,cumVerdun=0,cumAc=0;
   const rows=allMois.map(m=>{
     const d=MONTHLY.monthly[m];
-    cumTot+=d.ca; cumSQ+=d.ca_sq; cumLaon+=d.ca_laon;
-    cumAc+=(site==='all'?d.actes:site==='SQ'?d.actes_sq:d.actes_laon);
-    const cumSel=site==='all'?cumTot:site==='SQ'?cumSQ:cumLaon;
-    const caSel=site==='all'?d.ca:site==='SQ'?d.ca_sq:d.ca_laon;
-    return{m,cumTot,cumSQ,cumLaon,cumSel,cumAc,ca:d.ca,caSel};
+    cumTot+=d.ca; cumSQ+=d.ca_sq; cumLaon+=d.ca_laon; cumVerdun+=(d.ca_verdun||0);
+    cumAc+=bySite(d,'actes');
+    const cumSel=site==='all'?cumTot:site==='SQ'?cumSQ:site==='Laon'?cumLaon:cumVerdun;
+    const caSel=bySite(d,'ca');
+    return{m,cumTot,cumSQ,cumLaon,cumVerdun,cumSel,cumAc,ca:d.ca,caSel};
   });
-  const last=rows[rows.length-1]||{cumTot:0,cumSQ:0,cumLaon:0,cumSel:0,cumAc:0};
+  const last=rows[rows.length-1]||{cumTot:0,cumSQ:0,cumLaon:0,cumVerdun:0,cumSel:0,cumAc:0};
   const label=years.length===1?years[0]:years[0]+'→'+years[years.length-1];
   const siteLbl=site==='all'?'':site==='SQ'?' — Saint-Quentin':' — Laon';
   document.getElementById('chartLbl').textContent=`CA cumulé — ${label}${siteLbl}`;
@@ -507,6 +522,7 @@ function renderCumul(){
     <div class="kpi"><div class="kl">CA cumulé${siteLbl}</div><div class="kv">${fcak(last.cumSel)}</div><div class="ks">${fca(last.cumSel)}</div></div>
     <div class="kpi"><div class="kl">Cum. Saint-Quentin</div><div class="kv" style="color:#2a78d6">${fcak(last.cumSQ)}</div><div class="ks">${last.cumTot>0?Math.round(last.cumSQ/last.cumTot*100):0}% du total</div></div>
     <div class="kpi"><div class="kl">Cum. Laon</div><div class="kv" style="color:#1baf7a">${fcak(last.cumLaon)}</div><div class="ks">${last.cumTot>0?Math.round(last.cumLaon/last.cumTot*100):0}% du total</div></div>
+    <div class="kpi"><div class="kl">Cum. Verdun</div><div class="kv" style="color:#f59e0b">${fcak(last.cumVerdun)}</div><div class="ks">${last.cumTot>0?Math.round(last.cumVerdun/last.cumTot*100):0}% du total</div></div>
     <div class="kpi"><div class="kl">Patients cumulés${siteLbl}</div><div class="kv">${last.cumAc.toLocaleString('fr-FR')}</div><div class="ks">${label}</div></div>`;
   document.getElementById('band').innerHTML=`<span style="font-size:13px;color:#64748b">Progression cumulative du CA${siteLbl} — ${allMois.length} mois sélectionnés</span>`;
   if(cM)cM.destroy();
@@ -515,13 +531,14 @@ function renderCumul(){
       {label:'Tous',data:rows.map(r=>Math.round(r.cumTot)),borderColor:'#1a1a2e',borderWidth:site==='all'?2.5:1.5,pointRadius:2,tension:0.3,fill:false},
       {label:'SQ',data:rows.map(r=>Math.round(r.cumSQ)),borderColor:'#2a78d6',borderWidth:site==='SQ'?2.5:1.5,pointRadius:2,tension:0.3,fill:false},
       {label:'Laon',data:rows.map(r=>Math.round(r.cumLaon)),borderColor:'#1baf7a',borderWidth:site==='Laon'?2.5:1.5,pointRadius:2,tension:0.3,fill:false},
+      {label:'Verdun',data:rows.map(r=>Math.round(r.cumVerdun)),borderColor:'#f59e0b',borderWidth:site==='Verdun'?2.5:1.5,pointRadius:2,tension:0.3,fill:false},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+' : '+fca(c.parsed.y)}}},
       scales:{x:{grid:{display:false},ticks:{color:'#94a3b8',font:{size:10},maxRotation:45,maxTicksLimit:12}},
               y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>fcak(v)}}}}});
-  document.getElementById('legMain').innerHTML='<span><b style="background:#1a1a2e;height:3px;border-radius:2px;width:20px"></b>Tous</span><span><b style="background:#2a78d6"></b>SQ</span><span><b style="background:#1baf7a"></b>Laon</span>';
-  renderDonut(last.cumSQ,last.cumLaon);
+  document.getElementById('legMain').innerHTML='<span><b style="background:#1a1a2e;height:3px;border-radius:2px;width:20px"></b>Tous</span><span><b style="background:#2a78d6"></b>SQ</span><span><b style="background:#1baf7a"></b>Laon</span><span><b style="background:#f59e0b"></b>Verdun</span>';
+  renderDonut(last.cumSQ,last.cumLaon,last.cumVerdun);
   document.getElementById('th').innerHTML=`<tr><th style="text-align:left;width:14%">Mois</th><th>CA mois</th><th>Évol.</th><th>Cum. Total</th><th style="color:#2a78d6">Cum. SQ</th><th style="color:#1baf7a">Cum. Laon</th></tr>`;
   document.getElementById('tb').innerHTML=rows.map((r,i)=>{
     const prev=i>0?rows[i-1]:null;
@@ -705,7 +722,8 @@ function renderPatient(){
   const label=fmois(mo);
   let banque, stellair, hasStellair, scopeOk;
   if(patientSite==='SQ'){ banque=d.banque_sq; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=true; }
-  else if(patientSite==='Laon'){ banque=d.banque_laon; stellair=null; hasStellair=false; scopeOk=true; }
+  else if(patientSite==='Laon'){ banque=d.banque_laon; stellair=d.stellair_laon!==undefined?d.stellair_laon:null; hasStellair=stellair!==null; scopeOk=true; }
+  else if(patientSite==='Verdun'){ banque=d.banque_verdun||0; stellair=d.stellair_verdun!==undefined?d.stellair_verdun:null; hasStellair=stellair!==null; scopeOk=true; }
   else { banque=d.banque_tous; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=false; }
 
   let html=`<div class="kpi"><div class="kl">CB reçue en banque — ${label}${patientSite==='all'?' (SQ+Laon)':''}</div><div class="kv" style="font-size:30px">${fca(banque)}</div></div>`;
@@ -729,15 +747,17 @@ function renderPatientCumul(){
   let rows;
   if(patientSite==='SQ') rows=[PATIENT_CUMUL.sq];
   else if(patientSite==='Laon') rows=[PATIENT_CUMUL.laon];
-  else rows=[PATIENT_CUMUL.sq, PATIENT_CUMUL.laon];
+  else if(patientSite==='Verdun') rows=[PATIENT_CUMUL.verdun||{}];
+  else rows=[PATIENT_CUMUL.sq, PATIENT_CUMUL.laon, PATIENT_CUMUL.verdun||{}];
 
   const sumField=f=>rows.reduce((s,r)=>s+(r[f]||0),0);
   const bCheque=sumField('banque_cheque'), bEspeces=sumField('banque_especes');
   const bTotal=bCheque+bEspeces;
 
   let sCheque=null, sEspeces=null, sTotal=null, hasStellair=false;
-  if(patientSite==='SQ'){
-    sCheque=PATIENT_CUMUL.sq.stellair_cheque; sEspeces=PATIENT_CUMUL.sq.stellair_especes;
+  if(patientSite==='SQ'||patientSite==='Laon'||patientSite==='Verdun'){
+    const key=patientSite.toLowerCase();
+    sCheque=PATIENT_CUMUL[key].stellair_cheque; sEspeces=PATIENT_CUMUL[key].stellair_especes;
     sTotal=sCheque+sEspeces; hasStellair=true;
   }
 
@@ -767,9 +787,7 @@ function renderPatientCumul(){
     return `<tr><td style="text-align:left">${label}</td><td>${fca(banque)}</td><td>${fca(stellair)}</td><td style="color:${col};font-weight:600">${fca(ec)} (${pct}%)</td></tr>`;
   }
   let rowsHtml='';
-  if(patientSite==='Laon'){
-    rowsHtml=detailRow('Chèques', bCheque, null)+detailRow('Espèces', bEspeces, null);
-  } else if(patientSite==='SQ'){
+  if(patientSite==='Laon'||patientSite==='SQ'||patientSite==='Verdun'){
     rowsHtml=detailRow('Chèques', bCheque, sCheque)+detailRow('Espèces', bEspeces, sEspeces);
   } else {
     rowsHtml=detailRow('Chèques (2 sites vs Stellair SQ)', bCheque, PATIENT_CUMUL.sq.stellair_cheque)

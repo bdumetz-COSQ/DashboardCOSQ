@@ -168,7 +168,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
       </div>
     </div>
 
-    <div style="font-size:11px;color:#94a3b8;margin-top:4px;padding:0 2px">Suivi Sicorfé : Boucenna Saint-Quentin, Turki, Boucenna Laon — période février → 8 juillet 2026. Le <b>Cumul</b> démarre officiellement en <b>mars 2026</b> (février = démarrage, consultable via Mois).</div>
+    <div style="font-size:11px;color:#94a3b8;margin-top:4px;padding:0 2px">Suivi Sicorfé : Boucenna Saint-Quentin, Turki, Boucenna Laon — période <span class="rapproRange">février → 8 juillet 2026</span>. Le <b>Cumul</b> démarre officiellement en <b>mars 2026</b> (février = démarrage, consultable via Mois).</div>
   </div>
 
   <!-- ── PART PATIENT (CB) ────────────────────────────────────────────── -->
@@ -197,7 +197,7 @@ body{font-family:'Inter',sans-serif;background:#f0f4f8;min-height:100vh;color:#1
         <div class="ct" style="margin:0">CHÈQUES + ESPÈCES</div>
         <span style="font-size:11px;font-weight:600;color:#1a3a5c;background:#e8f0fb;padding:4px 10px;border-radius:20px">📌 Cumul complet — indépendant du mois choisi ci-dessus</span>
       </div>
-      <div style="font-size:11px;color:#94a3b8;margin-top:6px">Période couverte : février → 8 juillet 2026</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:6px">Période couverte : <span class="rapproRange">février → 8 juillet 2026</span></div>
       <div class="kr" id="patientCumulKpi" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:10px"></div>
       <div id="patientCumulDetail" style="margin-top:14px"></div>
       <div style="font-size:11px;color:#94a3b8;margin-top:10px">Dépôts irrégüliers (par lots) : chèques remis par bordereau tous les 3-6 semaines, espèces déposées via automate — pratique démarrée le <b>11 juin 2026</b>. Un rapprochement mensuel n'aurait pas de sens ici ; le cumul reste le seul niveau pertinent.</div>
@@ -235,6 +235,7 @@ jIdx=JOURS.length-1;
 
 // En-tête : période couverte, calculée automatiquement depuis les données (jamais à corriger à la main)
 const fdtShort=s=>{const d=new Date(s);const mo=MFR[d.getMonth()];return d.getDate()+' '+mo.charAt(0).toUpperCase()+mo.slice(1)+'. '+d.getFullYear();};
+(function(){const rj=Object.keys(RAPPRO.daily).sort();const t=fdtShort(rj[0])+' → '+fdtShort(rj[rj.length-1]);document.querySelectorAll('.rapproRange').forEach(e=>e.textContent=t);})();
 document.getElementById('headerRange').textContent='Winlogie · '+fdtShort(JOURS[0])+' → '+fdtShort(JOURS[JOURS.length-1]);
 
 // Init sélecteur mois
@@ -726,16 +727,17 @@ function renderPatient(){
   else if(patientSite==='Verdun'){ banque=d.banque_verdun||0; stellair=d.stellair_verdun!==undefined?d.stellair_verdun:null; hasStellair=stellair!==null; scopeOk=true; }
   else { banque=d.banque_tous; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=false; }
 
-  let html=`<div class="kpi"><div class="kl">CB reçue en banque — ${label}${patientSite==='all'?' (SQ+Laon)':''}</div><div class="kv" style="font-size:30px">${fca(banque)}</div></div>`;
-  const partielNote=d.stellair_partiel?' — partiel (Boucenna manquant ce mois)':'';
+  let html=`<div class="kpi"><div class="kl">CB reçue en banque — ${label}${patientSite==='all'?' (tous sites)':''}</div><div class="kv" style="font-size:30px">${fca(banque)}</div></div>`;
+  const partiel=d.stellair_partiel_sites?d.stellair_partiel_sites.includes(patientSite==='all'?'SQ':patientSite):!!d.stellair_partiel;
+  const partielNote=partiel?' — partiel (un médecin manquant ce mois)':'';
   if(hasStellair && scopeOk){
     const ecart=Math.round((banque-stellair)*100)/100;
     const pct=stellair>0?Math.round(ecart/stellair*1000)/10:0;
-    html+=`<div class="kpi"><div class="kl">CB facturée Stellair${partielNote}</div><div class="kv" style="font-size:${d.stellair_partiel?'22px':'30px'}">${fca(stellair)}</div></div>`;
-    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${d.stellair_partiel?'#94a3b8':Math.abs(pct)>5?'#d97706':'#16a34a'};font-size:26px">${d.stellair_partiel?'Non fiable':fca(ecart)}</div><div class="ks">${d.stellair_partiel?'Stellair incomplet ce mois':pct+'% (frais bancaires inclus)'}</div></div>`;
+    html+=`<div class="kpi"><div class="kl">CB facturée Stellair${partielNote}</div><div class="kv" style="font-size:${partiel?'22px':'30px'}">${fca(stellair)}</div></div>`;
+    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${partiel?'#94a3b8':Math.abs(pct)>5?'#d97706':'#16a34a'};font-size:26px">${partiel?'Non fiable':fca(ecart)}</div><div class="ks">${partiel?'Stellair incomplet ce mois':pct+'% (frais bancaires inclus)'}</div></div>`;
   } else if(hasStellair && !scopeOk){
-    html+=`<div class="kpi"><div class="kl">CB facturée Stellair (Saint-Quentin uniquement)${partielNote}</div><div class="kv" style="font-size:26px">${fca(stellair)}</div><div class="ks">Laon non inclus — pas comparable au total ci-dessus</div></div>`;
-    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:#94a3b8;font-size:18px">Non calculable</div><div class="ks">périmètres différents (banque = 2 sites, Stellair = SQ seul)</div></div>`;
+    html+=`<div class="kpi"><div class="kl">CB facturée Stellair (Saint-Quentin uniquement)${partielNote}</div><div class="kv" style="font-size:26px">${fca(stellair)}</div><div class="ks">Laon et Verdun non inclus — pas comparable au total ci-dessus</div></div>`;
+    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:#94a3b8;font-size:18px">Non calculable</div><div class="ks">périmètres différents (banque = tous sites, Stellair = SQ seul)</div></div>`;
   } else {
     html+=`<div class="kpi"><div class="kl">Comparaison Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Non disponible</div><div class="ks">export Stellair manquant pour ce site/mois</div></div>`;
   }

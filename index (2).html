@@ -726,16 +726,17 @@ function renderPatient(){
   else if(patientSite==='Verdun'){ banque=d.banque_verdun||0; stellair=d.stellair_verdun!==undefined?d.stellair_verdun:null; hasStellair=stellair!==null; scopeOk=true; }
   else { banque=d.banque_tous; stellair=d.stellair_sq; hasStellair=stellair!==null; scopeOk=false; }
 
-  let html=`<div class="kpi"><div class="kl">CB reçue en banque — ${label}${patientSite==='all'?' (SQ+Laon)':''}</div><div class="kv" style="font-size:30px">${fca(banque)}</div></div>`;
-  const partielNote=d.stellair_partiel?' — partiel (Boucenna manquant ce mois)':'';
+  let html=`<div class="kpi"><div class="kl">CB reçue en banque — ${label}${patientSite==='all'?' (tous sites)':''}</div><div class="kv" style="font-size:30px">${fca(banque)}</div></div>`;
+  const partiel=d.stellair_partiel_sites?d.stellair_partiel_sites.includes(patientSite==='all'?'SQ':patientSite):!!d.stellair_partiel;
+  const partielNote=partiel?' — partiel (un médecin manquant ce mois)':'';
   if(hasStellair && scopeOk){
     const ecart=Math.round((banque-stellair)*100)/100;
     const pct=stellair>0?Math.round(ecart/stellair*1000)/10:0;
-    html+=`<div class="kpi"><div class="kl">CB facturée Stellair${partielNote}</div><div class="kv" style="font-size:${d.stellair_partiel?'22px':'30px'}">${fca(stellair)}</div></div>`;
-    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${d.stellair_partiel?'#94a3b8':Math.abs(pct)>5?'#d97706':'#16a34a'};font-size:26px">${d.stellair_partiel?'Non fiable':fca(ecart)}</div><div class="ks">${d.stellair_partiel?'Stellair incomplet ce mois':pct+'% (frais bancaires inclus)'}</div></div>`;
+    html+=`<div class="kpi"><div class="kl">CB facturée Stellair${partielNote}</div><div class="kv" style="font-size:${partiel?'22px':'30px'}">${fca(stellair)}</div></div>`;
+    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:${partiel?'#94a3b8':Math.abs(pct)>5?'#d97706':'#16a34a'};font-size:26px">${partiel?'Non fiable':fca(ecart)}</div><div class="ks">${partiel?'Stellair incomplet ce mois':pct+'% (frais bancaires inclus)'}</div></div>`;
   } else if(hasStellair && !scopeOk){
-    html+=`<div class="kpi"><div class="kl">CB facturée Stellair (Saint-Quentin uniquement)${partielNote}</div><div class="kv" style="font-size:26px">${fca(stellair)}</div><div class="ks">Laon non inclus — pas comparable au total ci-dessus</div></div>`;
-    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:#94a3b8;font-size:18px">Non calculable</div><div class="ks">périmètres différents (banque = 2 sites, Stellair = SQ seul)</div></div>`;
+    html+=`<div class="kpi"><div class="kl">CB facturée Stellair (Saint-Quentin uniquement)${partielNote}</div><div class="kv" style="font-size:26px">${fca(stellair)}</div><div class="ks">Laon et Verdun non inclus — pas comparable au total ci-dessus</div></div>`;
+    html+=`<div class="kpi"><div class="kl">Écart</div><div class="kv" style="color:#94a3b8;font-size:18px">Non calculable</div><div class="ks">périmètres différents (banque = tous sites, Stellair = SQ seul)</div></div>`;
   } else {
     html+=`<div class="kpi"><div class="kl">Comparaison Stellair</div><div class="kv" style="color:#94a3b8;font-size:18px">Non disponible</div><div class="ks">export Stellair manquant pour ce site/mois</div></div>`;
   }
